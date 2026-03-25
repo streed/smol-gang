@@ -1,0 +1,40 @@
+# .smol-cluster.yaml - Configuration for smol-cluster agent pods
+version: "1"
+
+# Port mappings for services the agent might start
+ports:
+  - name: web
+    container_port: 3000
+    protocol: HTTP
+    description: "Web application dev server"
+  - name: api
+    container_port: 8080
+    protocol: HTTP
+    description: "API server"
+  - name: storybook
+    container_port: 6006
+    protocol: HTTP
+    description: "Storybook UI"
+
+# Commands to run during pod setup
+setup_commands:
+  - "npm install"
+  - "cp .env.example .env"
+
+# Environment variables for the agent
+env_vars:
+  NODE_ENV: development
+  DATABASE_URL: "postgresql://localhost:5432/dev"
+
+# Default prompt/instructions for the agent
+agent_prompt: |
+  You are working on a web application. Follow the project's coding standards.
+  Run tests before committing. Use conventional commit messages.
+
+# Resource limits for the pod
+resources:
+  cpu_request: "500m"
+  cpu_limit: "2000m"
+  memory_request: "1Gi"
+  memory_limit: "4Gi"
+  disk_size: "10Gi"

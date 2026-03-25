@@ -1,0 +1,121 @@
+package handlers
+
+import (
+	"net/http"
+
+	"github.com/go-chi/chi/v5"
+	chimw "github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/cors"
+	"github.com/streed/smol-cluster/gateway/internal/config"
+	"github.com/streed/smol-cluster/gateway/internal/db"
+	"github.com/streed/smol-cluster/gateway/internal/k8s"
+	"github.com/streed/smol-cluster/gateway/internal/middleware"
+	"github.com/streed/smol-cluster/gateway/internal/ws"
+)
+
+type Deps struct {
+	Config  *config.Config
+	Queries *db.Queries
+	K8s     *k8s.Client
+	Hub     *ws.Hub
+}
+
+func SetupRoutes(deps *Deps) http.Handler {
+	r := chi.NewRouter()
+
+	r.Use(chimw.Logger)
+	r.Use(chimw.Recoverer)
+	r.Use(chimw.RealIP)
+	r.Use(middleware.RequestIDMiddleware)
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		ExposedHeaders:   []string{"X-Request-ID"},
+		AllowCredentials: true,
+		MaxAge:           300,
+	}))
+
+	authHandler := &AuthHandler{Queries: deps.Queries, Config: deps.Config}
+	userHandler := &UserHandler{Queries: deps.Queries}
+	repoHandler := &RepoHandler{Queries: deps.Queries}
+	workstreamHandler := &WorkstreamHandler{Queries: deps.Queries, K8s: deps.K8s, Config: deps.Config, Hub: deps.Hub}
+	auditHandler := &AuditHandler{Queries: deps.Queries}
+
+	r.Route("/api/v1", func(r chi.Router) {
+		// Public routes
+		r.Group(func(r chi.Router) {
+			r.Post("/auth/login", authHandler.Login)
+			r.Post("/auth/register", authHandler.Register)
+		})
+
+		// Internal routes (agent callbacks)
+		r.Group(func(r chi.Router) {
+			r.Post("/internal/workstreams/{id}/agent-message", workstreamHandler.AgentMessage)
+			r.Post("/internal/workstreams/{id}/status", workstreamHandler.AgentStatusUpdate)
+		})
+
+		// Authenticated routes
+		r.Group(func(r chi.Router) {
+			r.Use(middleware.AuthMiddleware(deps.Config.JWTSecret))
+			r.Use(middleware.AuditMiddleware(deps.Queries))
+
+			// Auth
+			r.Get("/auth/me", authHandler.Me)
+			r.Post("/auth/refresh", authHandler.Refresh)
+
+			// Repositories (read for all, write for operator+)
+			r.Get("/repositories", repoHandler.List)
+			r.Get("/repositories/{id}", repoHandler.Get)
+
+			// Workstreams (read for all)
+			r.Get("/workstreams", workstreamHandler.List)
+			r.Get("/workstreams/{id}", workstreamHandler.Get)
+			r.Get("/workstreams/{id}/messages", workstreamHandler.GetMessages)
+			r.Get("/workstreams/{id}/logs", workstreamHandler.GetLogs)
+			r.Get("/workstreams/{id}/ports", workstreamHandler.GetPorts)
+
+			// WebSocket
+			r.Get("/ws/workstreams/{id}", func(w http.ResponseWriter, r *http.Request) {
+				wsID := chi.URLParam(r, "id")
+				deps.Hub.HandleWebSocket(w, r, wsID)
+			})
+
+			// Operator+ routes
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RBACMiddleware("admin", "operator"))
+
+				r.Post("/repositories", repoHandler.Create)
+				r.Put("/repositories/{id}", repoHandler.Update)
+				r.Post("/repositories/{id}/sync-config", repoHandler.SyncConfig)
+
+				r.Post("/workstreams", workstreamHandler.Create)
+				r.Post("/workstreams/{id}/message", workstreamHandler.SendMessage)
+				r.Post("/workstreams/{id}/complete", workstreamHandler.Complete)
+				r.Post("/workstreams/{id}/cancel", workstreamHandler.Cancel)
+			})
+
+			// Admin routes
+			r.Group(func(r chi.Router) {
+				r.Use(middleware.RBACMiddleware("admin"))
+
+				r.Get("/users", userHandler.List)
+				r.Get("/users/{id}", userHandler.Get)
+				r.Put("/users/{id}", userHandler.Update)
+				r.Delete("/users/{id}", userHandler.Delete)
+
+				r.Delete("/repositories/{id}", repoHandler.Delete)
+
+				r.Get("/audit-logs", auditHandler.List)
+			})
+		})
+	})
+
+	// Health check
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"ok"}`))
+	})
+
+	return r
+}
