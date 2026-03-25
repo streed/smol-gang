@@ -22,8 +22,9 @@ type Config struct {
 	LLMApiKey string
 	LLMModel  string
 
-	AgentImage string
-	LogLevel   string
+	AgentImage    string
+	AppRunnerImage string
+	LogLevel      string
 }
 
 func Load() (*Config, error) {
@@ -41,6 +42,7 @@ func Load() (*Config, error) {
 		LLMApiKey:           os.Getenv("LLM_API_KEY"),
 		LLMModel:            os.Getenv("LLM_MODEL"),
 		AgentImage:          getEnvDefault("AGENT_IMAGE", "smol-cluster/agent:latest"),
+		AppRunnerImage:      getEnvDefault("APP_RUNNER_IMAGE", "smol-cluster/agent:latest-apprunner"),
 		LogLevel:            getEnvDefault("LOG_LEVEL", "info"),
 	}
 

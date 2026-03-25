@@ -1,0 +1,41 @@
+# App runner container - runs the user's application from the shared workspace.
+# Isolated from the agent container so crashes in either don't affect the other.
+# This container has the runtimes needed to run typical web applications.
+FROM ubuntu:24.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install common runtimes and tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Node.js ecosystem
+    nodejs \
+    npm \
+    # Python ecosystem
+    python3 \
+    python3-pip \
+    python3-venv \
+    # System tools
+    git \
+    curl \
+    wget \
+    jq \
+    make \
+    build-essential \
+    # Docker CLI (connects to DinD sidecar)
+    docker.io \
+    docker-compose-v2 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install common global tools
+RUN npm install -g yarn pnpm
+
+# Create workspace directory (shared volume mount point)
+RUN mkdir -p /workspace
+
+COPY scripts/app-entrypoint.sh /app/app-entrypoint.sh
+RUN chmod +x /app/app-entrypoint.sh
+
+WORKDIR /workspace/repo
+
+# The app runner watches for setup completion then runs the app
+ENTRYPOINT ["/app/app-entrypoint.sh"]

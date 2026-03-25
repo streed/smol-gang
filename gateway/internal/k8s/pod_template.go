@@ -101,20 +101,45 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 		envVars = append(envVars, corev1.EnvVar{Name: "SETUP_COMMANDS", Value: cmds})
 	}
 
-	// Build container ports
-	containerPorts := []corev1.ContainerPort{
+	// Build container ports - agent gets ACP + bridge ports
+	agentPorts := []corev1.ContainerPort{
 		{Name: "acp", ContainerPort: 8021, Protocol: corev1.ProtocolTCP},
 		{Name: "bridge", ContainerPort: 8022, Protocol: corev1.ProtocolTCP},
 	}
+
+	// App runner gets the user-defined service ports
+	appPorts := []corev1.ContainerPort{}
 	for _, pm := range ws.PortMappings {
-		containerPorts = append(containerPorts, corev1.ContainerPort{
+		appPorts = append(appPorts, corev1.ContainerPort{
 			Name:          pm.Name,
 			ContainerPort: int32(pm.ContainerPort),
 			Protocol:      corev1.ProtocolTCP,
 		})
 	}
 
+	// App runner env vars (subset - no LLM keys, just app-related)
+	appEnvVars := []corev1.EnvVar{
+		{Name: "WORKSPACE", Value: "/workspace/repo"},
+	}
+	if repo.Config != nil {
+		for k, v := range repo.Config.EnvVars {
+			appEnvVars = append(appEnvVars, corev1.EnvVar{Name: k, Value: v})
+		}
+		// Pass app startup commands
+		if len(repo.Config.SetupCommands) > 0 {
+			cmds := ""
+			for i, c := range repo.Config.SetupCommands {
+				if i > 0 {
+					cmds += ";"
+				}
+				cmds += c
+			}
+			appEnvVars = append(appEnvVars, corev1.EnvVar{Name: "APP_COMMANDS", Value: cmds})
+		}
+	}
+
 	privileged := true
+	appRunnerImage := cfg.AppRunnerImage
 
 	pod := &corev1.Pod{
 		ObjectMeta: metav1.ObjectMeta{
@@ -130,6 +155,8 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 			RestartPolicy: corev1.RestartPolicyNever,
 			Volumes: []corev1.Volume{
 				{
+					// Shared workspace volume: agent clones repo here,
+					// app runner serves from here. Crash isolation between containers.
 					Name: "workspace",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{
@@ -138,20 +165,55 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 					},
 				},
 				{
+					// Shared docker socket between app runner and DinD sidecar
 					Name: "docker-socket",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
 					},
 				},
 			},
-			// Docker-in-Docker sidecar for repos using docker-compose
 			InitContainers: []corev1.Container{},
 			Containers: []corev1.Container{
+				// Container 1: Agent (minimal - only smolagent + bridge)
+				// Handles: git clone, branch, smolagent ACP, bridge server
+				// Does NOT run the app - isolated from app crashes
 				{
 					Name:  "agent",
 					Image: cfg.AgentImage,
 					Env:   envVars,
-					Ports: containerPorts,
+					Ports: agentPorts,
+					VolumeMounts: []corev1.VolumeMount{
+						{Name: "workspace", MountPath: "/workspace"},
+					},
+					Resources: corev1.ResourceRequirements{
+						Requests: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("250m"),
+							corev1.ResourceMemory: resource.MustParse("512Mi"),
+						},
+						Limits: corev1.ResourceList{
+							corev1.ResourceCPU:    resource.MustParse("1000m"),
+							corev1.ResourceMemory: resource.MustParse("2Gi"),
+						},
+					},
+					ReadinessProbe: &corev1.Probe{
+						ProbeHandler: corev1.ProbeHandler{
+							HTTPGet: &corev1.HTTPGetAction{
+								Path: "/health",
+								Port: intstr.FromInt(8022),
+							},
+						},
+						InitialDelaySeconds: 10,
+						PeriodSeconds:       5,
+					},
+				},
+				// Container 2: App Runner (has runtimes - node, python, docker CLI)
+				// Runs the user's application from the shared workspace
+				// Isolated from agent - if app crashes, agent keeps working
+				{
+					Name:  "app",
+					Image: appRunnerImage,
+					Env:   appEnvVars,
+					Ports: appPorts,
 					VolumeMounts: []corev1.VolumeMount{
 						{Name: "workspace", MountPath: "/workspace"},
 						{Name: "docker-socket", MountPath: "/var/run"},
@@ -166,18 +228,9 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 							corev1.ResourceMemory: resource.MustParse(memLimit),
 						},
 					},
-					ReadinessProbe: &corev1.Probe{
-						ProbeHandler: corev1.ProbeHandler{
-							HTTPGet: &corev1.HTTPGetAction{
-								Path: "/health",
-								Port: intstr.FromInt(8022),
-							},
-						},
-						InitialDelaySeconds: 10,
-						PeriodSeconds:       5,
-					},
 				},
-				// Docker-in-Docker sidecar for repos that run docker-compose
+				// Container 3: Docker-in-Docker sidecar
+				// For repos that use docker-compose
 				{
 					Name:  "dind",
 					Image: "docker:27-dind",

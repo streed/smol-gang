@@ -402,6 +402,44 @@ func (h *WorkstreamHandler) AgentStatusUpdate(w http.ResponseWriter, r *http.Req
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
+// Terminal provides an interactive web terminal into a workstream's container.
+// Defaults to the "app" container, but can target "agent" or "dind" via URL param.
+func (h *WorkstreamHandler) Terminal(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid workstream ID"})
+		return
+	}
+
+	workstream, err := h.Queries.GetWorkstreamByID(r.Context(), id)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, models.ErrorResponse{Error: "workstream not found"})
+		return
+	}
+
+	if workstream.PodName == "" {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "workstream has no pod"})
+		return
+	}
+
+	container := chi.URLParam(r, "container")
+	if container == "" {
+		container = "app" // default to app container for user interaction
+	}
+
+	// Validate container name
+	validContainers := map[string]bool{"app": true, "agent": true, "dind": true}
+	if !validContainers[container] {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid container name, must be: app, agent, or dind"})
+		return
+	}
+
+	if err := h.K8s.HandleTerminal(w, r, workstream.PodName, container); err != nil {
+		// WebSocket already upgraded, can't send HTTP error
+		return
+	}
+}
+
 func sanitizeBranchName(name string) string {
 	replacer := strings.NewReplacer(" ", "-", "/", "-", "\\", "-", ":", "-", "*", "", "?", "", "\"", "", "<", "", ">", "", "|", "")
 	return strings.ToLower(replacer.Replace(name))

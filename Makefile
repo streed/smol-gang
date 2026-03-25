@@ -25,6 +25,7 @@ build-web: ## Build web UI Docker image
 
 build-agent: ## Build agent Docker image
 	docker build -t smol-cluster/agent:latest ./agent
+	docker build -t smol-cluster/agent:latest-apprunner -f ./agent/Dockerfile.apprunner ./agent
 
 test: test-gateway ## Run all tests
 
@@ -56,6 +57,7 @@ kind-load: build ## Build and load images into Kind
 	kind load docker-image smol-cluster/gateway:latest --name smol-cluster
 	kind load docker-image smol-cluster/web:latest --name smol-cluster
 	kind load docker-image smol-cluster/agent:latest --name smol-cluster
+	kind load docker-image smol-cluster/agent:latest-apprunner --name smol-cluster
 
 helm-install: ## Install Helm chart to Kind cluster
 	helm upgrade --install smol-cluster ./helm/smol-cluster \

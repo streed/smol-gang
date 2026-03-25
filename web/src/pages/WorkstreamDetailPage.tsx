@@ -12,6 +12,7 @@ import {
 import { workstreams as wsApi, repos as reposApi } from '../api/endpoints';
 import StatusBadge from '../components/StatusBadge';
 import ChatInterface from '../components/ChatInterface';
+import Terminal from '../components/Terminal';
 import type { Workstream, Repository } from '../types';
 import toast from 'react-hot-toast';
 
@@ -25,6 +26,7 @@ export default function WorkstreamDetailPage() {
     Array<{ name: string; url: string; port: number }>
   >([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'agent-terminal'>('chat');
 
   const fetchData = async () => {
     if (!id) return;
@@ -146,9 +148,45 @@ export default function WorkstreamDetailPage() {
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left - Chat (2/3) */}
-        <div className="lg:col-span-2 h-[600px]">
-          <ChatInterface workstreamId={id} />
+        {/* Left - Chat/Terminal tabs (2/3) */}
+        <div className="lg:col-span-2 h-[600px] flex flex-col">
+          <div className="flex border-b border-gray-200 bg-white rounded-t-xl">
+            <button
+              onClick={() => setActiveTab('chat')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                activeTab === 'chat'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Chat
+            </button>
+            <button
+              onClick={() => setActiveTab('terminal')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                activeTab === 'terminal'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Terminal (App)
+            </button>
+            <button
+              onClick={() => setActiveTab('agent-terminal')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                activeTab === 'agent-terminal'
+                  ? 'border-indigo-500 text-indigo-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Terminal (Agent)
+            </button>
+          </div>
+          <div className="flex-1 min-h-0">
+            {activeTab === 'chat' && <ChatInterface workstreamId={id} />}
+            {activeTab === 'terminal' && <Terminal workstreamId={id!} container="app" />}
+            {activeTab === 'agent-terminal' && <Terminal workstreamId={id!} container="agent" />}
+          </div>
         </div>
 
         {/* Right - Actions Panel (1/3) */}

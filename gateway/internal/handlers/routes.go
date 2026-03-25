@@ -81,6 +81,11 @@ func SetupRoutes(deps *Deps) http.Handler {
 				deps.Hub.HandleWebSocket(w, r, wsID)
 			})
 
+			// Terminal - interactive shell into the app container
+			r.Get("/ws/workstreams/{id}/terminal", workstreamHandler.Terminal)
+			// Terminal into specific container (app, agent, dind)
+			r.Get("/ws/workstreams/{id}/terminal/{container}", workstreamHandler.Terminal)
+
 			// Operator+ routes
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RBACMiddleware("admin", "operator"))

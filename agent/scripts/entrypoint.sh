@@ -135,6 +135,10 @@ fi
 
 report_status "initializing" "Setup complete"
 
+# Signal the app runner container that setup is done
+touch /workspace/.setup-done
+log "Signaled app runner that setup is complete"
+
 # ---------------------------------------------------------------------------
 # Step 4: Start smolagent in ACP mode
 # ---------------------------------------------------------------------------
