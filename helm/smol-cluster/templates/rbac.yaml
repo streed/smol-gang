@@ -1,0 +1,66 @@
+{{- if .Values.rbac.create | default true }}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "smol-cluster.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-cluster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "smol-cluster.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-cluster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+rules:
+  # Pod management for agent pods (including DinD sidecars)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["create", "delete", "get", "list", "watch"]
+  # Pod logs for streaming agent output
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  # Pod exec for DinD support in agent pods
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  # Services for agent networking
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["create", "delete", "get", "list"]
+  # ConfigMaps for agent configuration and workspace state
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create", "delete", "get", "list"]
+  # PVCs for agent workspace persistence
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims"]
+    verbs: ["create", "delete", "get", "list"]
+  # Events for monitoring agent pod lifecycle
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "smol-cluster.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-cluster.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "smol-cluster.fullname" . }}-gateway
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "smol-cluster.fullname" . }}-gateway
+    namespace: {{ .Release.Namespace }}
+{{- end }}

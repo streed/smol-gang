@@ -1,0 +1,45 @@
+# Go
+gateway/vendor/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Node
+web/node_modules/
+web/dist/
+web/.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+
+# Environment
+.env
+.env.local
+*.pem
+*.key
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Docker
+docker-compose.override.yml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# K8s
+kubeconfig
+*.kubeconfig
+
+# Build
+/bin/
+/tmp/
