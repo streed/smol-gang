@@ -134,7 +134,7 @@ func (h *RepoHandler) SyncConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// In production, this would clone/fetch the repo and read .smol-cluster.yaml
+	// In production, this would clone/fetch the repo and read .smol-gang.yaml
 	// For now, return the current config
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"message": "config synced",
