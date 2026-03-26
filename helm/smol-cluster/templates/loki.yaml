@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-loki-config
+  name: {{ include "smol-gang.fullname" . }}-loki-config
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
 data:
   loki.yaml: |
@@ -52,21 +52,21 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-loki
+  name: {{ include "smol-gang.fullname" . }}-loki
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "smol-cluster.selectorLabels" . | nindent 6 }}
+      {{- include "smol-gang.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: loki
   template:
     metadata:
       labels:
-        {{- include "smol-cluster.selectorLabels" . | nindent 8 }}
+        {{- include "smol-gang.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: loki
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/loki.yaml") . | sha256sum }}
@@ -107,18 +107,18 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "smol-cluster.fullname" . }}-loki-config
+            name: {{ include "smol-gang.fullname" . }}-loki-config
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "smol-cluster.fullname" . }}-loki-data
+            claimName: {{ include "smol-gang.fullname" . }}-loki-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-loki-data
+  name: {{ include "smol-gang.fullname" . }}-loki-data
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
 spec:
   accessModes: ["ReadWriteOnce"]
@@ -129,10 +129,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-loki
+  name: {{ include "smol-gang.fullname" . }}-loki
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: loki
 spec:
   type: ClusterIP
@@ -142,5 +142,5 @@ spec:
       targetPort: http
       protocol: TCP
   selector:
-    {{- include "smol-cluster.selectorLabels" . | nindent 4 }}
+    {{- include "smol-gang.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: loki

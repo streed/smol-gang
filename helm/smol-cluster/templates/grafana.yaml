@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana-datasources
+  name: {{ include "smol-gang.fullname" . }}-grafana-datasources
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 data:
   datasources.yaml: |
@@ -13,30 +13,30 @@ data:
       - name: Prometheus
         type: prometheus
         access: proxy
-        url: http://{{ include "smol-cluster.fullname" . }}-prometheus:9090
+        url: http://{{ include "smol-gang.fullname" . }}-prometheus:9090
         isDefault: true
         editable: false
       - name: Loki
         type: loki
         access: proxy
-        url: http://{{ include "smol-cluster.fullname" . }}-loki:3100
+        url: http://{{ include "smol-gang.fullname" . }}-loki:3100
         editable: false
 ---
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana-dashboard-provisioning
+  name: {{ include "smol-gang.fullname" . }}-grafana-dashboard-provisioning
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 data:
   dashboards.yaml: |
     apiVersion: 1
     providers:
-      - name: smol-cluster
+      - name: smol-gang
         orgId: 1
-        folder: "smol-cluster"
+        folder: "smol-gang"
         type: file
         disableDeletion: false
         editable: true
@@ -48,21 +48,21 @@ data:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana
+  name: {{ include "smol-gang.fullname" . }}-grafana
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 spec:
   replicas: 1
   selector:
     matchLabels:
-      {{- include "smol-cluster.selectorLabels" . | nindent 6 }}
+      {{- include "smol-gang.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: grafana
   template:
     metadata:
       labels:
-        {{- include "smol-cluster.selectorLabels" . | nindent 8 }}
+        {{- include "smol-gang.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: grafana
     spec:
       containers:
@@ -78,7 +78,7 @@ spec:
             - name: GF_SECURITY_ADMIN_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "smol-cluster.fullname" . }}-grafana-secret
+                  name: {{ include "smol-gang.fullname" . }}-grafana-secret
                   key: admin-password
             - name: GF_USERS_ALLOW_SIGN_UP
               value: "false"
@@ -115,24 +115,24 @@ spec:
       volumes:
         - name: datasources
           configMap:
-            name: {{ include "smol-cluster.fullname" . }}-grafana-datasources
+            name: {{ include "smol-gang.fullname" . }}-grafana-datasources
         - name: dashboard-provisioning
           configMap:
-            name: {{ include "smol-cluster.fullname" . }}-grafana-dashboard-provisioning
+            name: {{ include "smol-gang.fullname" . }}-grafana-dashboard-provisioning
         - name: dashboards
           configMap:
-            name: {{ include "smol-cluster.fullname" . }}-grafana-dashboards
+            name: {{ include "smol-gang.fullname" . }}-grafana-dashboards
         - name: data
           persistentVolumeClaim:
-            claimName: {{ include "smol-cluster.fullname" . }}-grafana-data
+            claimName: {{ include "smol-gang.fullname" . }}-grafana-data
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana-data
+  name: {{ include "smol-gang.fullname" . }}-grafana-data
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 spec:
   accessModes: ["ReadWriteOnce"]
@@ -143,10 +143,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana
+  name: {{ include "smol-gang.fullname" . }}-grafana
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 spec:
   type: ClusterIP
@@ -156,16 +156,16 @@ spec:
       targetPort: http
       protocol: TCP
   selector:
-    {{- include "smol-cluster.selectorLabels" . | nindent 4 }}
+    {{- include "smol-gang.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 ---
 apiVersion: v1
 kind: Secret
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana-secret
+  name: {{ include "smol-gang.fullname" . }}-grafana-secret
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 type: Opaque
 data:
