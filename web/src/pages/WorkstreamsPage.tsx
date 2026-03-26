@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   workstreams as wsApi,
@@ -30,7 +30,7 @@ export default function WorkstreamsPage() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const fetchWorkstreams = async () => {
+  const fetchWorkstreams = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, per_page: 20 };
@@ -44,7 +44,7 @@ export default function WorkstreamsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filterRepo, filterStatus]);
 
   useEffect(() => {
     reposApi.listRepos(1).then((res) => {
@@ -54,7 +54,7 @@ export default function WorkstreamsPage() {
 
   useEffect(() => {
     fetchWorkstreams();
-  }, [page, filterRepo, filterStatus]);
+  }, [fetchWorkstreams]);
 
   const repoName = (repoId: string) => {
     const repo = repositories.find((r) => r.id === repoId);

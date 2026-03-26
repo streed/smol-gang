@@ -1,13 +1,16 @@
 #!/bin/bash
 # Cleanup script: commit, push, and report final status
+# Usage: cleanup.sh <workspace> <branch_name> <gateway_url> <workstream_id> <gateway_token> <exit_code>
 set -e
 
-WORKSPACE="/workspace/repo"
-BRANCH_NAME="${BRANCH_NAME:-}"
-GATEWAY_URL="${GATEWAY_URL:-}"
-WORKSTREAM_ID="${WORKSTREAM_ID:-}"
+WORKSPACE="${1:-/workspace/repo}"
+BRANCH_NAME="${2:-${BRANCH_NAME:-}}"
+GATEWAY_URL="${3:-${GATEWAY_URL:-}}"
+WORKSTREAM_ID="${4:-${WORKSTREAM_ID:-}}"
+GATEWAY_TOKEN="${5:-${GATEWAY_TOKEN:-}}"
+EXIT_CODE="${6:-0}"
 
-echo "=== Starting cleanup ==="
+echo "=== Starting cleanup (exit_code=${EXIT_CODE}) ==="
 
 cd "$WORKSPACE"
 
@@ -30,13 +33,25 @@ if [ -n "$BRANCH_NAME" ]; then
     git push -u origin "$BRANCH_NAME" || echo "Warning: push failed"
 fi
 
-# Report completion to gateway
+# Determine final status based on exit code
+if [ "$EXIT_CODE" -eq 0 ]; then
+    FINAL_STATUS="completed"
+else
+    FINAL_STATUS="failed"
+fi
+
+# Report status to gateway
 if [ -n "$GATEWAY_URL" ] && [ -n "$WORKSTREAM_ID" ]; then
+    AUTH_HEADER=""
+    if [ -n "$GATEWAY_TOKEN" ]; then
+        AUTH_HEADER="-H \"Authorization: Bearer $GATEWAY_TOKEN\""
+    fi
     curl -s -X POST \
         "$GATEWAY_URL/api/v1/internal/workstreams/$WORKSTREAM_ID/status" \
         -H "Content-Type: application/json" \
-        -d '{"status":"completed"}' \
+        ${GATEWAY_TOKEN:+-H "Authorization: Bearer $GATEWAY_TOKEN"} \
+        -d "{\"status\":\"$FINAL_STATUS\"}" \
         || echo "Warning: failed to report status"
 fi
 
-echo "=== Cleanup complete ==="
+echo "=== Cleanup complete (status=${FINAL_STATUS}) ==="

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { audit as auditApi, users as usersApi } from '../api/endpoints';
 import Pagination from '../components/Pagination';
@@ -17,7 +17,7 @@ export default function AuditLogPage() {
   const [filterDateTo, setFilterDateTo] = useState('');
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async () => {
     setLoading(true);
     try {
       const params: Record<string, string | number> = { page, per_page: 20 };
@@ -33,7 +33,7 @@ export default function AuditLogPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [page, filterUser, filterAction, filterDateFrom, filterDateTo]);
 
   useEffect(() => {
     usersApi
@@ -44,7 +44,7 @@ export default function AuditLogPage() {
 
   useEffect(() => {
     fetchLogs();
-  }, [page, filterUser, filterAction, filterDateFrom, filterDateTo]);
+  }, [fetchLogs]);
 
   const userName = (userId: string) => {
     const user = usersList.find((u) => u.id === userId);

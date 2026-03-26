@@ -40,8 +40,8 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
     if (!trimmed) return;
     setInput('');
     try {
+      // Send via REST API only — the WebSocket is for receiving real-time updates
       await wsApi.sendMessage(workstreamId, trimmed);
-      send(trimmed);
     } catch {
       // ignore
     }

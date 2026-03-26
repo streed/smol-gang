@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAuthStore } from './store/auth';
 import Layout from './components/Layout';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
 import RepositoriesPage from './pages/RepositoriesPage';
@@ -24,7 +25,7 @@ function App() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-neon-cyan" />
       </div>
     );
   }
@@ -42,8 +43,10 @@ function App() {
             <Route path="/repositories/:id" element={<RepositoryDetailPage />} />
             <Route path="/workstreams" element={<WorkstreamsPage />} />
             <Route path="/workstreams/:id" element={<WorkstreamDetailPage />} />
-            <Route path="/users" element={<UsersPage />} />
-            <Route path="/audit-log" element={<AuditLogPage />} />
+            <Route element={<AdminRoute />}>
+              <Route path="/users" element={<UsersPage />} />
+              <Route path="/audit-log" element={<AuditLogPage />} />
+            </Route>
           </Route>
         </Route>
       </Routes>

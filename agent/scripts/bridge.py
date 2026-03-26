@@ -8,6 +8,7 @@ Runs alongside smolagent in the agent pod, providing:
 - GET /health - health check
 """
 
+import argparse
 import json
 import logging
 import os
@@ -21,10 +22,16 @@ from urllib.error import URLError
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("bridge")
 
-GATEWAY_URL = os.environ.get("GATEWAY_URL", "http://localhost:8080")
-WORKSTREAM_ID = os.environ.get("WORKSTREAM_ID", "")
-ACP_PORT = int(os.environ.get("ACP_PORT", "8021"))
-BRIDGE_PORT = int(os.environ.get("BRIDGE_PORT", "8022"))
+# Global config — populated from CLI args or env vars in main()
+config = {
+    "gateway_url": "",
+    "workstream_id": "",
+    "gateway_token": "",
+    "acp_port": 8021,
+    "bridge_port": 8022,
+    "workspace": "/workspace/repo",
+    "branch": "",
+}
 
 agent_status = "starting"
 agent_lock = threading.Lock()
@@ -32,12 +39,15 @@ agent_lock = threading.Lock()
 
 def report_to_gateway(endpoint: str, data: dict):
     """Send data back to the gateway."""
-    url = f"{GATEWAY_URL}/api/v1/internal/workstreams/{WORKSTREAM_ID}/{endpoint}"
+    url = f"{config['gateway_url']}/api/v1/internal/workstreams/{config['workstream_id']}/{endpoint}"
     try:
+        headers = {"Content-Type": "application/json"}
+        if config["gateway_token"]:
+            headers["Authorization"] = f"Bearer {config['gateway_token']}"
         req = Request(
             url,
             data=json.dumps(data).encode(),
-            headers={"Content-Type": "application/json"},
+            headers=headers,
             method="POST",
         )
         with urlopen(req, timeout=10) as resp:
@@ -52,7 +62,7 @@ def send_to_acp(message: str) -> str:
     try:
         data = json.dumps({"message": message}).encode()
         req = Request(
-            f"http://localhost:{ACP_PORT}/message",
+            f"http://localhost:{config['acp_port']}/message",
             data=data,
             headers={"Content-Type": "application/json"},
             method="POST",
@@ -66,23 +76,24 @@ def send_to_acp(message: str) -> str:
 
 def run_git_push_and_pr() -> str:
     """Push changes and create a PR."""
-    branch = os.environ.get("BRANCH_NAME", "")
+    branch = config["branch"]
+    workspace = config["workspace"]
     repo_owner = os.environ.get("GITHUB_OWNER", "")
     repo_name = os.environ.get("GITHUB_REPO", "")
 
     try:
         # Stage and commit any remaining changes
-        subprocess.run(["git", "add", "-A"], cwd="/workspace/repo", check=False)
+        subprocess.run(["git", "add", "-A"], cwd=workspace, check=False)
         subprocess.run(
             ["git", "commit", "-m", "chore: final agent changes"],
-            cwd="/workspace/repo",
+            cwd=workspace,
             check=False,
         )
 
         # Push
         subprocess.run(
             ["git", "push", "-u", "origin", branch],
-            cwd="/workspace/repo",
+            cwd=workspace,
             check=True,
         )
 
@@ -92,7 +103,7 @@ def run_git_push_and_pr() -> str:
             result = subprocess.run(
                 ["gh", "pr", "create", "--title", pr_title, "--body",
                  "Automated PR created by smol-cluster agent", "--base", "main"],
-                cwd="/workspace/repo",
+                cwd=workspace,
                 capture_output=True,
                 text=True,
                 check=True,
@@ -135,9 +146,10 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
     def _handle_message(self, data: dict):
         global agent_status
-        content = data.get("content", "")
+        # Accept both "content" and "message" keys for compatibility
+        content = data.get("content") or data.get("message", "")
         if not content:
-            self._respond(400, {"error": "content is required"})
+            self._respond(400, {"error": "content or message is required"})
             return
 
         with agent_lock:
@@ -183,11 +195,39 @@ class BridgeHandler(BaseHTTPRequestHandler):
         logger.info(f"{self.client_address[0]} - {format % args}")
 
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="smol-cluster bridge server")
+    parser.add_argument("--port", type=int, default=int(os.environ.get("BRIDGE_PORT", "8022")),
+                        help="Bridge server port")
+    parser.add_argument("--acp-port", type=int, default=int(os.environ.get("ACP_PORT", "8021")),
+                        help="smolagent ACP port")
+    parser.add_argument("--gateway-url", default=os.environ.get("GATEWAY_URL", "http://localhost:8080"),
+                        help="Gateway URL")
+    parser.add_argument("--workstream-id", default=os.environ.get("WORKSTREAM_ID", ""),
+                        help="Workstream ID")
+    parser.add_argument("--gateway-token", default=os.environ.get("GATEWAY_TOKEN", ""),
+                        help="Gateway auth token")
+    parser.add_argument("--workspace", default=os.environ.get("WORKSPACE", "/workspace/repo"),
+                        help="Workspace directory")
+    parser.add_argument("--branch", default=os.environ.get("BRANCH_NAME", ""),
+                        help="Git branch name")
+    return parser.parse_args()
+
+
 def main():
     global agent_status
 
-    server = HTTPServer(("0.0.0.0", BRIDGE_PORT), BridgeHandler)
-    logger.info(f"Bridge server listening on port {BRIDGE_PORT}")
+    args = parse_args()
+    config["gateway_url"] = args.gateway_url
+    config["workstream_id"] = args.workstream_id
+    config["gateway_token"] = args.gateway_token
+    config["acp_port"] = args.acp_port
+    config["bridge_port"] = args.port
+    config["workspace"] = args.workspace
+    config["branch"] = args.branch
+
+    server = HTTPServer(("0.0.0.0", config["bridge_port"]), BridgeHandler)
+    logger.info(f"Bridge server listening on port {config['bridge_port']}")
 
     with agent_lock:
         agent_status = "idle"
