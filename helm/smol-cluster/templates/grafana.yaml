@@ -42,7 +42,7 @@ data:
         editable: true
         updateIntervalSeconds: 30
         options:
-          path: /var/lib/grafana/dashboards
+          path: /etc/grafana/dashboards
           foldersFromFilesStructure: false
 ---
 apiVersion: apps/v1
@@ -108,10 +108,10 @@ spec:
               mountPath: /etc/grafana/provisioning/datasources
             - name: dashboard-provisioning
               mountPath: /etc/grafana/provisioning/dashboards
-            - name: dashboards
-              mountPath: /var/lib/grafana/dashboards
             - name: data
               mountPath: /var/lib/grafana
+            - name: dashboards
+              mountPath: /etc/grafana/dashboards
       volumes:
         - name: datasources
           configMap:
@@ -152,7 +152,7 @@ spec:
   type: ClusterIP
   ports:
     - name: http
-      port: 3001
+      port: {{ .Values.grafana.service.port | default 3000 }}
       targetPort: http
       protocol: TCP
   selector:
@@ -169,4 +169,4 @@ metadata:
     app.kubernetes.io/component: grafana
 type: Opaque
 data:
-  admin-password: {{ default "admin" .Values.grafana.adminPassword | b64enc | quote }}
+  admin-password: {{ .Values.grafana.adminPassword | default "admin" | b64enc | quote }}

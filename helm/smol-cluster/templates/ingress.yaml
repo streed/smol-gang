@@ -10,12 +10,14 @@ metadata:
     {{- if .Values.ingress.tls }}
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     {{- end }}
-    {{- if .Values.ingress.clusterIssuer }}
-    cert-manager.io/cluster-issuer: {{ .Values.ingress.clusterIssuer | quote }}
-    {{- end }}
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
     nginx.ingress.kubernetes.io/proxy-read-timeout: "600"
     nginx.ingress.kubernetes.io/proxy-send-timeout: "600"
+    # WebSocket support
+    nginx.ingress.kubernetes.io/proxy-http-version: "1.1"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection "upgrade";
     {{- with .Values.ingress.annotations }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
@@ -32,28 +34,18 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- if .Values.ingress.gatewayHost }}
-    - host: {{ .Values.ingress.gatewayHost | quote }}
+    {{- range .Values.ingress.hosts }}
+    - host: {{ .host | quote }}
       http:
         paths:
-          - path: /
-            pathType: Prefix
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "smol-cluster.fullname" . }}-gateway
+                name: {{ include "smol-cluster.fullname" $ }}-gateway
                 port:
-                  number: {{ .Values.gateway.service.port | default 8080 }}
-    {{- end }}
-    {{- if .Values.ingress.webHost }}
-    - host: {{ .Values.ingress.webHost | quote }}
-      http:
-        paths:
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: {{ include "smol-cluster.fullname" . }}-web
-                port:
-                  number: {{ .Values.web.service.port | default 3000 }}
+                  number: {{ $.Values.gateway.port | default 8080 }}
+          {{- end }}
     {{- end }}
 {{- end }}

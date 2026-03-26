@@ -69,6 +69,24 @@ agent:
       cpu: "2"
       memory: 2Gi
 
+# -- Web UI configuration
+web:
+  image:
+    repository: smol-cluster/web
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  replicas: 1
+  port: 3000
+  service:
+    port: 3000
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
+
 # -- Ingress configuration
 ingress:
   enabled: false
@@ -127,6 +145,25 @@ networkPolicy:
 podDisruptionBudget:
   enabled: false
   minAvailable: 1
+
+# -- Grafana configuration
+grafana:
+  enabled: true
+  adminPassword: "admin"
+  service:
+    port: 3000
+
+# -- Prometheus configuration
+prometheus:
+  enabled: true
+
+# -- Loki configuration
+loki:
+  enabled: true
+
+# -- Promtail configuration
+promtail:
+  enabled: true
 
 # -- Image pull secrets
 imagePullSecrets: []

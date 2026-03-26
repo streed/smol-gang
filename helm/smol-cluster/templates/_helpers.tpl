@@ -118,8 +118,8 @@ Database URL construction
 {{- end }}
 
 {{/*
-Namespace to use
+Namespace to use - always respect --namespace flag (Release.Namespace)
 */}}
 {{- define "smol-cluster.namespace" -}}
-{{- default .Release.Namespace .Values.namespace }}
+{{- .Release.Namespace }}
 {{- end }}
