@@ -1,4 +1,4 @@
-# .smol-cluster.yaml - Configuration for smol-cluster agent pods
+# .smol-gang.yaml - Configuration for smol-gang agent pods
 version: "1"
 
 # Port mappings for services the agent might start

@@ -2,11 +2,11 @@
 set -euo pipefail
 
 # =============================================================================
-# smol-cluster Agent Entrypoint
+# smol-gang Agent Entrypoint
 # Orchestrates repo clone, setup, agent bridge, and smolagent ACP server.
 # =============================================================================
 
-LOG_PREFIX="[smol-cluster-agent]"
+LOG_PREFIX="[smol-gang-agent]"
 
 log() {
     echo "${LOG_PREFIX} $(date -u '+%Y-%m-%dT%H:%M:%SZ') $*"
@@ -98,8 +98,8 @@ fi
 cd "$WORKSPACE"
 
 # Configure git identity
-git config user.email "agent@smol-cluster.local"
-git config user.name "smol-cluster-agent"
+git config user.email "agent@smol-gang.local"
+git config user.name "smol-gang-agent"
 
 # ---------------------------------------------------------------------------
 # Step 2: Create and checkout the feature branch
@@ -119,7 +119,7 @@ fi
 report_status "initializing" "Repository cloned, branch ready"
 
 # ---------------------------------------------------------------------------
-# Step 3: Read .smol-cluster.yaml and run setup
+# Step 3: Read .smol-gang.yaml and run setup
 # ---------------------------------------------------------------------------
 log "Running setup..."
 report_status "initializing" "Running setup commands..."

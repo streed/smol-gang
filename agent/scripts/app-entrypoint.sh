@@ -19,7 +19,7 @@ echo "Setup complete, starting application..."
 
 cd "$WORKSPACE"
 
-# Run app commands from .smol-cluster.yaml or env override
+# Run app commands from .smol-gang.yaml or env override
 if [ -n "$APP_COMMANDS" ]; then
     echo "Running app commands: $APP_COMMANDS"
     IFS=';' read -ra CMDS <<< "$APP_COMMANDS"

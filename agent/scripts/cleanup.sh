@@ -21,7 +21,7 @@ git add -A
 if ! git diff --cached --quiet; then
     git commit -m "chore: final agent changes
 
-Automated commit by smol-cluster agent"
+Automated commit by smol-gang agent"
     echo "Changes committed"
 else
     echo "No changes to commit"

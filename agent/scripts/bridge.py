@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Bridge server between the smol-cluster gateway and smolagent.
+"""Bridge server between the smol-gang gateway and smolagent.
 
 Runs alongside smolagent in the agent pod, providing:
 - POST /message - forward user messages to the agent
@@ -102,7 +102,7 @@ def run_git_push_and_pr() -> str:
         try:
             result = subprocess.run(
                 ["gh", "pr", "create", "--title", pr_title, "--body",
-                 "Automated PR created by smol-cluster agent", "--base", "main"],
+                 "Automated PR created by smol-gang agent", "--base", "main"],
                 cwd=workspace,
                 capture_output=True,
                 text=True,
@@ -196,7 +196,7 @@ class BridgeHandler(BaseHTTPRequestHandler):
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="smol-cluster bridge server")
+    parser = argparse.ArgumentParser(description="smol-gang bridge server")
     parser.add_argument("--port", type=int, default=int(os.environ.get("BRIDGE_PORT", "8022")),
                         help="Bridge server port")
     parser.add_argument("--acp-port", type=int, default=int(os.environ.get("ACP_PORT", "8021")),
