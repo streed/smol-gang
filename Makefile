@@ -18,14 +18,14 @@ dev-compose-down: ## Stop docker-compose services
 build: build-gateway build-web build-agent ## Build all Docker images
 
 build-gateway: ## Build gateway Docker image
-	docker build -t smol-cluster/gateway:latest ./gateway
+	docker build -t smol-gang/gateway:latest ./gateway
 
 build-web: ## Build web UI Docker image
-	docker build -t smol-cluster/web:latest ./web
+	docker build -t smol-gang/web:latest ./web
 
 build-agent: ## Build agent Docker image
-	docker build -t smol-cluster/agent:latest ./agent
-	docker build -t smol-cluster/agent:latest-apprunner -f ./agent/Dockerfile.apprunner ./agent
+	docker build -t smol-gang/agent:latest ./agent
+	docker build -t smol-gang/agent:latest-apprunner -f ./agent/Dockerfile.apprunner ./agent
 
 test: test-gateway ## Run all tests
 
@@ -44,30 +44,30 @@ lint: ## Run linters
 
 clean: ## Clean up everything
 	docker compose down -v
-	kind delete cluster --name smol-cluster 2>/dev/null || true
-	docker rmi smol-cluster/gateway:latest smol-cluster/web:latest smol-cluster/agent:latest 2>/dev/null || true
+	kind delete cluster --name smol-gang 2>/dev/null || true
+	docker rmi smol-gang/gateway:latest smol-gang/web:latest smol-gang/agent:latest 2>/dev/null || true
 
 kind-setup: ## Create Kind K8s cluster
 	./scripts/kind-setup.sh
 
 kind-teardown: ## Delete Kind K8s cluster
-	kind delete cluster --name smol-cluster
+	kind delete cluster --name smol-gang
 
 kind-load: build ## Build and load images into Kind
-	kind load docker-image smol-cluster/gateway:latest --name smol-cluster
-	kind load docker-image smol-cluster/web:latest --name smol-cluster
-	kind load docker-image smol-cluster/agent:latest --name smol-cluster
-	kind load docker-image smol-cluster/agent:latest-apprunner --name smol-cluster
+	kind load docker-image smol-gang/gateway:latest --name smol-gang
+	kind load docker-image smol-gang/web:latest --name smol-gang
+	kind load docker-image smol-gang/agent:latest --name smol-gang
+	kind load docker-image smol-gang/agent:latest-apprunner --name smol-gang
 
 helm-install: ## Install Helm chart to Kind cluster
-	helm upgrade --install smol-cluster ./helm/smol-cluster \
-		--namespace smol-cluster --create-namespace \
-		--set gateway.image.repository=smol-cluster/gateway \
+	helm upgrade --install smol-gang ./helm/smol-cluster \
+		--namespace smol-gang --create-namespace \
+		--set gateway.image.repository=smol-gang/gateway \
 		--set gateway.image.tag=latest \
 		--set gateway.image.pullPolicy=Never
 
 helm-uninstall: ## Uninstall Helm chart
-	helm uninstall smol-cluster --namespace smol-cluster
+	helm uninstall smol-gang --namespace smol-gang
 
 logs-gateway: ## Tail gateway logs
 	docker compose logs -f gateway

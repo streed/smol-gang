@@ -24,7 +24,7 @@ func GenerateToken(userID uuid.UUID, email, role, secret string, expiry time.Dur
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(expiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
-			Issuer:    "smol-cluster",
+			Issuer:    "smol-gang",
 		},
 	}
 
