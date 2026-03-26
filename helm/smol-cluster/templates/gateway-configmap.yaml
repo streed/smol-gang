@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.gateway.fullname" . }}-config
-  namespace: {{ include "smol-cluster.namespace" . }}
+  name: {{ include "smol-gang.gateway.fullname" . }}-config
+  namespace: {{ include "smol-gang.namespace" . }}
   labels:
-    {{- include "smol-cluster.gateway.labels" . | nindent 4 }}
+    {{- include "smol-gang.gateway.labels" . | nindent 4 }}
 data:
   PORT: {{ .Values.gateway.port | quote }}
   LOG_LEVEL: {{ .Values.gateway.env.logLevel | quote }}
@@ -13,7 +13,7 @@ data:
   LLM_API_URL: {{ .Values.llm.apiURL | quote }}
   LLM_MODEL: {{ .Values.llm.model | quote }}
   {{- if .Values.postgresql.embedded }}
-  POSTGRES_HOST: {{ include "smol-cluster.postgresql.fullname" . | quote }}
+  POSTGRES_HOST: {{ include "smol-gang.postgresql.fullname" . | quote }}
   POSTGRES_PORT: {{ .Values.postgresql.port | quote }}
   POSTGRES_DB: {{ .Values.postgresql.database | quote }}
   POSTGRES_USER: {{ .Values.postgresql.username | quote }}

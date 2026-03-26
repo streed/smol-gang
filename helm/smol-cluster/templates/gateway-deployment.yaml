@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "smol-cluster.gateway.fullname" . }}
-  namespace: {{ include "smol-cluster.namespace" . }}
+  name: {{ include "smol-gang.gateway.fullname" . }}
+  namespace: {{ include "smol-gang.namespace" . }}
   labels:
-    {{- include "smol-cluster.gateway.labels" . | nindent 4 }}
+    {{- include "smol-gang.gateway.labels" . | nindent 4 }}
 spec:
   replicas: {{ .Values.gateway.replicas }}
   selector:
     matchLabels:
-      {{- include "smol-cluster.gateway.selectorLabels" . | nindent 6 }}
+      {{- include "smol-gang.gateway.selectorLabels" . | nindent 6 }}
   template:
     metadata:
       labels:
-        {{- include "smol-cluster.gateway.selectorLabels" . | nindent 8 }}
+        {{- include "smol-gang.gateway.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/gateway-configmap.yaml") . | sha256sum }}
         checksum/secret: {{ include (print $.Template.BasePath "/gateway-secret.yaml") . | sha256sum }}
@@ -22,7 +22,7 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "smol-cluster.serviceAccountName" . }}
+      serviceAccountName: {{ include "smol-gang.serviceAccountName" . }}
       containers:
         - name: gateway
           image: "{{ .Values.gateway.image.repository }}:{{ .Values.gateway.image.tag }}"
@@ -33,17 +33,17 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: {{ include "smol-cluster.gateway.fullname" . }}-config
+                name: {{ include "smol-gang.gateway.fullname" . }}-config
             - secretRef:
-                name: {{ include "smol-cluster.gateway.fullname" . }}-secret
+                name: {{ include "smol-gang.gateway.fullname" . }}-secret
           env:
             - name: DATABASE_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: {{ include "smol-cluster.gateway.fullname" . }}-secret
+                  name: {{ include "smol-gang.gateway.fullname" . }}-secret
                   key: DATABASE_PASSWORD
             - name: DATABASE_URL
-              value: {{ include "smol-cluster.databaseURL" . | quote }}
+              value: {{ include "smol-gang.databaseURL" . | quote }}
             {{- range $key, $value := .Values.gateway.extraEnv }}
             - name: {{ $key }}
               value: {{ $value | quote }}

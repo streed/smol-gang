@@ -2,10 +2,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}
+  name: {{ include "smol-gang.fullname" . }}
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
   annotations:
     {{- if .Values.ingress.tls }}
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
@@ -43,7 +43,7 @@ spec:
             pathType: {{ .pathType }}
             backend:
               service:
-                name: {{ include "smol-cluster.fullname" $ }}-gateway
+                name: {{ include "smol-gang.fullname" $ }}-gateway
                 port:
                   number: {{ $.Values.gateway.port | default 8080 }}
           {{- end }}
