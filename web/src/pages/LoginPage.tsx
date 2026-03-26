@@ -58,7 +58,7 @@ export default function LoginPage() {
               <span className="text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">
                 SMOL
               </span>
-              <span className="text-gray-200">-CLUSTER</span>
+              <span className="text-gray-200">-GANG</span>
             </h1>
           </div>
           <p className="text-gray-400 text-sm font-mono tracking-wider">
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 className="input-cyber w-full"
-                placeholder="operator@smol-cluster.io"
+                placeholder="operator@smol-gang.io"
               />
             </div>
             <div>

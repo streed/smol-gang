@@ -1,5 +1,5 @@
 apiVersion: v2
-name: smol-cluster
+name: smol-gang
 description: Kubernetes orchestration for parallel smolagent workstreams
 type: application
 version: 0.1.0
