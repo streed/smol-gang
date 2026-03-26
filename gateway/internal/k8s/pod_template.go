@@ -15,8 +15,8 @@ import (
 func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, cfg *config.Config) *corev1.Pod {
 	labels := map[string]string{
 		"app":                    "smol-agent",
-		"smol-cluster/workstream": ws.ID.String(),
-		"smol-cluster/repo":      repo.ID.String(),
+		"smol-gang/workstream": ws.ID.String(),
+		"smol-gang/repo":      repo.ID.String(),
 	}
 
 	// Default resource limits
@@ -69,7 +69,7 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 		{Name: "LLM_API_KEY", Value: llmKey},
 		{Name: "LLM_MODEL", Value: llmModel},
 		{Name: "WORKSTREAM_ID", Value: ws.ID.String()},
-		{Name: "GATEWAY_URL", Value: fmt.Sprintf("http://smol-cluster-gateway.%s.svc.cluster.local:8080", cfg.K8sNamespace)},
+		{Name: "GATEWAY_URL", Value: fmt.Sprintf("http://smol-gang-gateway.%s.svc.cluster.local:8080", cfg.K8sNamespace)},
 		{Name: "ACP_PORT", Value: "8021"},
 		{Name: "BRIDGE_PORT", Value: "8022"},
 	}
@@ -90,7 +90,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 
 	// Setup commands as JSON
 	if repo.Config != nil && len(repo.Config.SetupCommands) > 0 {
-		// Pass as comma-separated for shell parsing
 		cmds := ""
 		for i, c := range repo.Config.SetupCommands {
 			if i > 0 {
@@ -101,13 +100,12 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 		envVars = append(envVars, corev1.EnvVar{Name: "SETUP_COMMANDS", Value: cmds})
 	}
 
-	// Build container ports - agent gets ACP + bridge ports
+	// Build container ports
 	agentPorts := []corev1.ContainerPort{
 		{Name: "acp", ContainerPort: 8021, Protocol: corev1.ProtocolTCP},
 		{Name: "bridge", ContainerPort: 8022, Protocol: corev1.ProtocolTCP},
 	}
 
-	// App runner gets the user-defined service ports
 	appPorts := []corev1.ContainerPort{}
 	for _, pm := range ws.PortMappings {
 		appPorts = append(appPorts, corev1.ContainerPort{
@@ -117,7 +115,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 		})
 	}
 
-	// App runner env vars (subset - no LLM keys, just app-related)
 	appEnvVars := []corev1.EnvVar{
 		{Name: "WORKSPACE", Value: "/workspace/repo"},
 	}
@@ -125,7 +122,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 		for k, v := range repo.Config.EnvVars {
 			appEnvVars = append(appEnvVars, corev1.EnvVar{Name: k, Value: v})
 		}
-		// Pass app startup commands
 		if len(repo.Config.SetupCommands) > 0 {
 			cmds := ""
 			for i, c := range repo.Config.SetupCommands {
@@ -147,16 +143,14 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 			Namespace: cfg.K8sNamespace,
 			Labels:    labels,
 			Annotations: map[string]string{
-				"smol-cluster/workstream-name": ws.Name,
-				"smol-cluster/repo-name":       repo.Name,
+				"smol-gang/workstream-name": ws.Name,
+				"smol-gang/repo-name":       repo.Name,
 			},
 		},
 		Spec: corev1.PodSpec{
 			RestartPolicy: corev1.RestartPolicyNever,
 			Volumes: []corev1.Volume{
 				{
-					// Shared workspace volume: agent clones repo here,
-					// app runner serves from here. Crash isolation between containers.
 					Name: "workspace",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{
@@ -165,7 +159,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 					},
 				},
 				{
-					// Shared docker socket between app runner and DinD sidecar
 					Name: "docker-socket",
 					VolumeSource: corev1.VolumeSource{
 						EmptyDir: &corev1.EmptyDirVolumeSource{},
@@ -174,9 +167,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 			},
 			InitContainers: []corev1.Container{},
 			Containers: []corev1.Container{
-				// Container 1: Agent (minimal - only smolagent + bridge)
-				// Handles: git clone, branch, smolagent ACP, bridge server
-				// Does NOT run the app - isolated from app crashes
 				{
 					Name:  "agent",
 					Image: cfg.AgentImage,
@@ -206,9 +196,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 						PeriodSeconds:       5,
 					},
 				},
-				// Container 2: App Runner (has runtimes - node, python, docker CLI)
-				// Runs the user's application from the shared workspace
-				// Isolated from agent - if app crashes, agent keeps working
 				{
 					Name:  "app",
 					Image: appRunnerImage,
@@ -229,8 +216,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 						},
 					},
 				},
-				// Container 3: Docker-in-Docker sidecar
-				// For repos that use docker-compose
 				{
 					Name:  "dind",
 					Image: "docker:27-dind",
@@ -281,12 +266,12 @@ func BuildServiceSpec(serviceName, podName string, ws models.Workstream) *corev1
 			Name: serviceName,
 			Labels: map[string]string{
 				"app":                    "smol-agent",
-				"smol-cluster/workstream": ws.ID.String(),
+				"smol-gang/workstream": ws.ID.String(),
 			},
 		},
 		Spec: corev1.ServiceSpec{
 			Selector: map[string]string{
-				"smol-cluster/workstream": ws.ID.String(),
+				"smol-gang/workstream": ws.ID.String(),
 			},
 			Ports: ports,
 			Type:  corev1.ServiceTypeClusterIP,
