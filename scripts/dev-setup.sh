@@ -122,23 +122,23 @@ install_helm_chart() {
     local host_ip
     host_ip=$(docker network inspect bridge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || echo "172.17.0.1")
 
-    helm upgrade --install smol-cluster "${PROJECT_DIR}/helm/smol-cluster" \
-        --namespace smol-cluster \
+    helm upgrade --install smol-gang "${PROJECT_DIR}/helm/smol-cluster" \
+        --namespace smol-gang \
         --create-namespace \
-        --set gateway.image.repository=smol-cluster/gateway \
+        --set gateway.image.repository=smol-gang/gateway \
         --set gateway.image.tag=latest \
         --set gateway.image.pullPolicy=Never \
         --set gateway.env.DATABASE_URL="postgres://smol:smol_dev_password@${host_ip}:5432/smol_cluster?sslmode=disable" \
         --set gateway.env.K8S_IN_CLUSTER="true" \
-        --set gateway.env.K8S_NAMESPACE="smol-cluster" \
+        --set gateway.env.K8S_NAMESPACE="smol-gang" \
         --set gateway.env.LOG_LEVEL="debug"
 
     info "Helm chart installed. Waiting for gateway pod..."
-    kubectl wait --namespace smol-cluster \
+    kubectl wait --namespace smol-gang \
         --for=condition=ready pod \
         --selector=app.kubernetes.io/name=gateway \
         --timeout=120s 2>/dev/null || \
-        warn "Gateway pod not ready yet. Check with: kubectl get pods -n smol-cluster"
+        warn "Gateway pod not ready yet. Check with: kubectl get pods -n smol-gang"
 }
 
 # ------------------------------------------------------------------
@@ -147,7 +147,7 @@ install_helm_chart() {
 print_summary() {
     echo ""
     info "============================================="
-    info "  smol-cluster dev environment is running!"
+    info "  smol-gang dev environment is running!"
     info "============================================="
     echo ""
     echo "  Access URLs:"
@@ -166,8 +166,8 @@ print_summary() {
     echo "    make dev-down          # Stop everything"
     echo ""
     echo "  Kubernetes:"
-    echo "    kubectl get pods -n smol-cluster"
-    echo "    kubectl get svc  -n smol-cluster"
+    echo "    kubectl get pods -n smol-gang"
+    echo "    kubectl get svc  -n smol-gang"
     echo ""
 }
 
@@ -175,7 +175,7 @@ print_summary() {
 # Main
 # ------------------------------------------------------------------
 main() {
-    info "=== smol-cluster Development Environment Setup ==="
+    info "=== smol-gang Development Environment Setup ==="
     check_prereqs
     setup_env
     start_compose

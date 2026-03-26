@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-smol-cluster}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-smol-gang}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -51,11 +51,11 @@ create_cluster() {
 # Create namespace
 # ------------------------------------------------------------------
 create_namespace() {
-    if kubectl get namespace smol-cluster &>/dev/null; then
-        info "Namespace 'smol-cluster' already exists."
+    if kubectl get namespace smol-gang &>/dev/null; then
+        info "Namespace 'smol-gang' already exists."
     else
-        info "Creating namespace 'smol-cluster'..."
-        kubectl create namespace smol-cluster
+        info "Creating namespace 'smol-gang'..."
+        kubectl create namespace smol-gang
     fi
 }
 
@@ -81,27 +81,27 @@ build_and_load_images() {
 
     if [[ -f "${PROJECT_DIR}/gateway/Dockerfile" ]]; then
         info "Building gateway image..."
-        docker build -t smol-cluster/gateway:latest "${PROJECT_DIR}/gateway"
+        docker build -t smol-gang/gateway:latest "${PROJECT_DIR}/gateway"
     else
         warn "gateway/Dockerfile not found, skipping gateway build."
     fi
 
     if [[ -f "${PROJECT_DIR}/web/Dockerfile" ]]; then
         info "Building web image..."
-        docker build -t smol-cluster/web:latest "${PROJECT_DIR}/web"
+        docker build -t smol-gang/web:latest "${PROJECT_DIR}/web"
     else
         warn "web/Dockerfile not found, skipping web build."
     fi
 
     if [[ -f "${PROJECT_DIR}/agent/Dockerfile" ]]; then
         info "Building agent image..."
-        docker build -t smol-cluster/agent:latest "${PROJECT_DIR}/agent"
+        docker build -t smol-gang/agent:latest "${PROJECT_DIR}/agent"
     else
         warn "agent/Dockerfile not found, skipping agent build."
     fi
 
     info "Loading images into Kind cluster..."
-    for image in smol-cluster/gateway:latest smol-cluster/web:latest smol-cluster/agent:latest; do
+    for image in smol-gang/gateway:latest smol-gang/web:latest smol-gang/agent:latest; do
         if docker image inspect "$image" &>/dev/null; then
             kind load docker-image "$image" --name "${CLUSTER_NAME}"
             info "Loaded ${image}"
@@ -119,8 +119,8 @@ apply_rbac() {
     if [[ -f "$rbac_file" ]]; then
         info "Applying RBAC manifests..."
         # Use helm template to render, then apply
-        helm template smol-cluster "${PROJECT_DIR}/helm/smol-cluster" \
-            --namespace smol-cluster \
+        helm template smol-gang "${PROJECT_DIR}/helm/smol-cluster" \
+            --namespace smol-gang \
             --show-only templates/rbac.yaml | kubectl apply -f - 2>/dev/null || \
         warn "Could not apply RBAC via helm template. You may need to run 'make helm-install' instead."
     else
@@ -132,7 +132,7 @@ apply_rbac() {
 # Main
 # ------------------------------------------------------------------
 main() {
-    info "=== smol-cluster Kind Setup ==="
+    info "=== smol-gang Kind Setup ==="
     check_prereqs
     create_cluster
     create_namespace
@@ -144,9 +144,9 @@ main() {
     info "=== Kind cluster '${CLUSTER_NAME}' is ready! ==="
     echo ""
     echo "  Useful commands:"
-    echo "    kubectl get pods -n smol-cluster          # List pods"
-    echo "    kubectl get svc  -n smol-cluster          # List services"
-    echo "    kubectl logs -f <pod> -n smol-cluster     # Tail pod logs"
+    echo "    kubectl get pods -n smol-gang          # List pods"
+    echo "    kubectl get svc  -n smol-gang          # List services"
+    echo "    kubectl logs -f <pod> -n smol-gang     # Tail pod logs"
     echo "    kind delete cluster --name ${CLUSTER_NAME}  # Tear down"
     echo ""
     echo "  To install the Helm chart:"

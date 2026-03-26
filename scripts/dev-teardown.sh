@@ -3,7 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-CLUSTER_NAME="${KIND_CLUSTER_NAME:-smol-cluster}"
+CLUSTER_NAME="${KIND_CLUSTER_NAME:-smol-gang}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -60,7 +60,7 @@ fi
 # ------------------------------------------------------------------
 if [[ "$CLEAN" == "true" ]]; then
     info "Removing locally built Docker images..."
-    docker rmi smol-cluster/gateway:latest smol-cluster/web:latest smol-cluster/agent:latest 2>/dev/null || true
+    docker rmi smol-gang/gateway:latest smol-gang/web:latest smol-gang/agent:latest 2>/dev/null || true
     info "Cleanup complete."
 fi
 
