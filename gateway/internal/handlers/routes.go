@@ -6,6 +6,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/streed/smol-cluster/gateway/internal/config"
 	"github.com/streed/smol-cluster/gateway/internal/db"
 	"github.com/streed/smol-cluster/gateway/internal/k8s"
@@ -27,12 +28,13 @@ func SetupRoutes(deps *Deps) http.Handler {
 	r.Use(chimw.Recoverer)
 	r.Use(chimw.RealIP)
 	r.Use(middleware.RequestIDMiddleware)
+	r.Use(middleware.PrometheusMetrics)
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
 		ExposedHeaders:   []string{"X-Request-ID"},
-		AllowCredentials: true,
+		AllowCredentials: false,
 		MaxAge:           300,
 	}))
 
@@ -88,14 +90,13 @@ func SetupRoutes(deps *Deps) http.Handler {
 				deps.Hub.HandleWebSocket(w, r, wsID)
 			})
 
-			// Terminal - interactive shell into the app container
-			r.Get("/ws/workstreams/{id}/terminal", workstreamHandler.Terminal)
-			// Terminal into specific container (app, agent, dind)
-			r.Get("/ws/workstreams/{id}/terminal/{container}", workstreamHandler.Terminal)
-
 			// Operator+ routes
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RBACMiddleware("admin", "operator"))
+
+				// Terminal - interactive shell (operator+ only)
+				r.Get("/ws/workstreams/{id}/terminal", workstreamHandler.Terminal)
+				r.Get("/ws/workstreams/{id}/terminal/{container}", workstreamHandler.Terminal)
 
 				r.Post("/repositories", repoHandler.Create)
 				r.Put("/repositories/{id}", repoHandler.Update)
@@ -128,6 +129,9 @@ func SetupRoutes(deps *Deps) http.Handler {
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte(`{"status":"ok"}`))
 	})
+
+	// Prometheus metrics endpoint
+	r.Handle("/metrics", promhttp.Handler())
 
 	return r
 }

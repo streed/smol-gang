@@ -69,7 +69,13 @@ func (c *Client) HandleTerminal(w http.ResponseWriter, r *http.Request, podName,
 		container = "app"
 	}
 
-	return c.execInPod(r.Context(), podName, container, []string{"/bin/bash", "-l"}, session)
+	// Use /bin/sh as universal fallback (Alpine containers like dind don't have bash)
+	shell := []string{"/bin/sh", "-l"}
+	if container == "app" {
+		shell = []string{"/bin/bash", "-l"}
+	}
+
+	return c.execInPod(r.Context(), podName, container, shell, session)
 }
 
 func (c *Client) execInPod(ctx context.Context, podName, container string, command []string, session *TerminalSession) error {

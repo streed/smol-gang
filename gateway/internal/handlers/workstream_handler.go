@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -77,13 +78,23 @@ func (h *WorkstreamHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Provision K8s pod asynchronously
+	// Provision K8s pod asynchronously (use background context since request will end)
 	go func() {
-		_ = h.Queries.UpdateWorkstreamStatus(r.Context(), workstream.ID, "provisioning")
+		bgCtx := context.Background()
+		_ = h.Queries.UpdateWorkstreamStatus(bgCtx, workstream.ID, "provisioning")
 
-		podName, serviceName, provErr := h.K8s.CreateAgentPod(r.Context(), workstream, repo)
+		if h.K8s == nil {
+			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, workstream.ID, "failed")
+			h.Hub.BroadcastToWorkstream(workstream.ID.String(), ws.Message{
+				Type:    "status_change",
+				Content: "provisioning failed: k8s client not initialized",
+			})
+			return
+		}
+
+		podName, serviceName, provErr := h.K8s.CreateAgentPod(bgCtx, workstream, repo)
 		if provErr != nil {
-			_ = h.Queries.UpdateWorkstreamStatus(r.Context(), workstream.ID, "failed")
+			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, workstream.ID, "failed")
 			h.Hub.BroadcastToWorkstream(workstream.ID.String(), ws.Message{
 				Type:    "status_change",
 				Content: fmt.Sprintf("provisioning failed: %v", provErr),
@@ -91,8 +102,8 @@ func (h *WorkstreamHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		_ = h.Queries.UpdateWorkstreamPod(r.Context(), workstream.ID, podName, serviceName)
-		_ = h.Queries.UpdateWorkstreamStatus(r.Context(), workstream.ID, "running")
+		_ = h.Queries.UpdateWorkstreamPod(bgCtx, workstream.ID, podName, serviceName)
+		_ = h.Queries.UpdateWorkstreamStatus(bgCtx, workstream.ID, "running")
 
 		h.Hub.BroadcastToWorkstream(workstream.ID.String(), ws.Message{
 			Type:    "status_change",
@@ -173,8 +184,8 @@ func (h *WorkstreamHandler) SendMessage(w http.ResponseWriter, r *http.Request) 
 
 	// Forward message to agent pod
 	workstream, err := h.Queries.GetWorkstreamByID(r.Context(), id)
-	if err == nil && workstream.PodName != "" {
-		go h.K8s.SendMessageToAgent(r.Context(), workstream.ServiceName, req.Content)
+	if err == nil && workstream.PodName != "" && h.K8s != nil {
+		go h.K8s.SendMessageToAgent(context.Background(), workstream.ServiceName, req.Content)
 	}
 
 	// Broadcast to WebSocket clients
@@ -230,21 +241,28 @@ func (h *WorkstreamHandler) Complete(w http.ResponseWriter, r *http.Request) {
 
 	_ = h.Queries.UpdateWorkstreamStatus(r.Context(), id, "completing")
 
-	// Tell agent to wrap up, push, and create PR
+	// Tell agent to wrap up, push, and create PR (use background context)
 	go func() {
-		prURL, completeErr := h.K8s.CompleteWorkstream(r.Context(), workstream)
+		bgCtx := context.Background()
+
+		if h.K8s == nil {
+			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, id, "failed")
+			return
+		}
+
+		prURL, completeErr := h.K8s.CompleteWorkstream(bgCtx, workstream)
 		if completeErr != nil {
-			_ = h.Queries.UpdateWorkstreamStatus(r.Context(), id, "failed")
+			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, id, "failed")
 			return
 		}
 
 		if prURL != "" {
-			_ = h.Queries.UpdateWorkstreamPR(r.Context(), id, prURL)
+			_ = h.Queries.UpdateWorkstreamPR(bgCtx, id, prURL)
 		}
 
 		// Clean up K8s resources
-		_ = h.K8s.DeleteAgentPod(r.Context(), workstream.PodName, workstream.ServiceName)
-		_ = h.Queries.UpdateWorkstreamStatus(r.Context(), id, "completed")
+		_ = h.K8s.DeleteAgentPod(bgCtx, workstream.PodName, workstream.ServiceName)
+		_ = h.Queries.UpdateWorkstreamStatus(bgCtx, id, "completed")
 
 		h.Hub.BroadcastToWorkstream(id.String(), ws.Message{
 			Type:    "status_change",
@@ -269,8 +287,8 @@ func (h *WorkstreamHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Clean up K8s resources
-	if workstream.PodName != "" {
-		go h.K8s.DeleteAgentPod(r.Context(), workstream.PodName, workstream.ServiceName)
+	if workstream.PodName != "" && h.K8s != nil {
+		go h.K8s.DeleteAgentPod(context.Background(), workstream.PodName, workstream.ServiceName)
 	}
 
 	_ = h.Queries.UpdateWorkstreamStatus(r.Context(), id, "cancelled")

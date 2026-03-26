@@ -19,6 +19,7 @@ type client struct {
 	conn         *websocket.Conn
 	workstreamID string
 	send         chan []byte
+	closeOnce    sync.Once
 }
 
 type Hub struct {
@@ -98,8 +99,10 @@ func (h *Hub) removeClient(workstreamID string, c *client) {
 			delete(h.rooms, workstreamID)
 		}
 	}
-	close(c.send)
-	c.conn.Close()
+	c.closeOnce.Do(func() {
+		close(c.send)
+		c.conn.Close()
+	})
 }
 
 func (h *Hub) writePump(c *client) {

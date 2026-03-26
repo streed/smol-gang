@@ -96,6 +96,7 @@ CREATE TABLE IF NOT EXISTS workstreams (
     status VARCHAR(50) NOT NULL DEFAULT 'pending',
     pod_name VARCHAR(255) NOT NULL DEFAULT '',
     service_name VARCHAR(255) NOT NULL DEFAULT '',
+    port_mappings JSONB DEFAULT '[]',
     pull_request_url TEXT NOT NULL DEFAULT '',
     llm_config JSONB,
     created_by_id UUID NOT NULL REFERENCES users(id),
