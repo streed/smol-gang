@@ -3,6 +3,7 @@ package k8s
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -150,9 +151,9 @@ func (c *Client) CompleteWorkstream(ctx context.Context, ws models.Workstream) (
 	var result struct {
 		PRURL string `json:"pull_request_url"`
 	}
-	if err := io.ReadAll(resp.Body); err == nil {
-		// parse the response for PR URL
+	body, err := io.ReadAll(resp.Body)
+	if err == nil && len(body) > 0 {
+		json.Unmarshal(body, &result)
 	}
-	_ = result
 	return result.PRURL, nil
 }

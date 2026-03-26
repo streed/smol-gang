@@ -65,21 +65,21 @@ export default function RepositoriesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Repositories</h1>
+        <h1 className="text-xl font-display font-bold text-gray-100 uppercase tracking-wider">Repositories</h1>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="btn-neon-cyan flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
           Link Repository
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="bg-cyber-card border border-cyber-border rounded-lg">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="table-cyber w-full">
             <thead>
-              <tr className="border-b border-gray-100">
+              <tr className="border-b border-cyber-border">
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Name
                 </th>
@@ -94,18 +94,18 @@ export default function RepositoriesPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-cyber-border">
               {loading ? (
                 <tr>
                   <td colSpan={4} className="px-6 py-8 text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-neon-cyan mx-auto" />
                   </td>
                 </tr>
               ) : repositories.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-6 py-8 text-center text-sm text-gray-400"
+                    className="px-6 py-8 text-center text-sm text-gray-500"
                   >
                     No repositories linked yet.
                   </td>
@@ -115,18 +115,18 @@ export default function RepositoriesPage() {
                   <tr
                     key={repo.id}
                     onClick={() => navigate(`/repositories/${repo.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="hover:bg-neon-cyan/5 cursor-pointer transition-colors"
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-300">
                       {repo.name}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-400">
                       {repo.github_owner}/{repo.github_repo}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-400">
                       {repo.default_branch}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-400">
                       {new Date(repo.created_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -136,7 +136,7 @@ export default function RepositoriesPage() {
           </table>
         </div>
         {total > 0 && (
-          <div className="px-6 border-t border-gray-100">
+          <div className="px-6 border-t border-cyber-border">
             <Pagination
               page={page}
               perPage={20}
@@ -155,7 +155,7 @@ export default function RepositoriesPage() {
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Name
             </label>
             <input
@@ -165,13 +165,13 @@ export default function RepositoriesPage() {
                 setFormData({ ...formData, name: e.target.value })
               }
               required
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
               placeholder="my-project"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-mono text-gray-400 mb-1">
                 GitHub Owner
               </label>
               <input
@@ -181,12 +181,12 @@ export default function RepositoriesPage() {
                   setFormData({ ...formData, github_owner: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="input-cyber w-full"
                 placeholder="owner"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-mono text-gray-400 mb-1">
                 GitHub Repo
               </label>
               <input
@@ -196,13 +196,13 @@ export default function RepositoriesPage() {
                   setFormData({ ...formData, github_repo: e.target.value })
                 }
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="input-cyber w-full"
                 placeholder="repo"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Git URL
             </label>
             <input
@@ -212,12 +212,12 @@ export default function RepositoriesPage() {
                 setFormData({ ...formData, git_url: e.target.value })
               }
               required
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
               placeholder="https://github.com/owner/repo.git"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Default Branch
             </label>
             <input
@@ -226,7 +226,7 @@ export default function RepositoriesPage() {
               onChange={(e) =>
                 setFormData({ ...formData, default_branch: e.target.value })
               }
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
               placeholder="main"
             />
           </div>
@@ -234,14 +234,14 @@ export default function RepositoriesPage() {
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="btn-cyber text-gray-400 border-cyber-border hover:text-gray-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="btn-neon-cyan disabled:opacity-50"
             >
               {submitting ? 'Linking...' : 'Link Repository'}
             </button>

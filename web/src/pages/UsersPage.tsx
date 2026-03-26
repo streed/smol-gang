@@ -98,24 +98,35 @@ export default function UsersPage() {
     }
   };
 
+  const roleBadgeClass = (role: string) => {
+    switch (role) {
+      case 'admin':
+        return 'bg-neon-magenta/10 text-neon-magenta border border-neon-magenta/30';
+      case 'operator':
+        return 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30';
+      default:
+        return 'bg-gray-500/10 text-gray-400 border border-gray-500/30';
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Users</h1>
+        <h1 className="text-xl font-display font-bold text-gray-100 uppercase tracking-wider">Users</h1>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="btn-neon-cyan flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
           Add User
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="bg-cyber-card border border-cyber-border rounded-lg">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="table-cyber w-full">
             <thead>
-              <tr className="border-b border-gray-100">
+              <tr className="border-b border-cyber-border">
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Email
                 </th>
@@ -133,43 +144,39 @@ export default function UsersPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-cyber-border">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-neon-cyan mx-auto" />
                   </td>
                 </tr>
               ) : usersList.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-8 text-center text-sm text-gray-400"
+                    className="px-6 py-8 text-center text-sm text-gray-500"
                   >
                     No users found.
                   </td>
                 </tr>
               ) : (
                 usersList.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                  <tr key={u.id} className="hover:bg-neon-cyan/5 transition-colors">
+                    <td className="px-6 py-4 text-sm text-gray-300">
                       {u.email}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-300">
                       {u.name}
                     </td>
                     <td className="px-6 py-4">
                       <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${
-                          u.role === 'admin'
-                            ? 'bg-purple-100 text-purple-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
+                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium capitalize ${roleBadgeClass(u.role)}`}
                       >
                         {u.role}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-400">
                       {new Date(u.created_at).toLocaleDateString()}
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -180,7 +187,7 @@ export default function UsersPage() {
                             setEditRole(u.role);
                             setShowEditModal(true);
                           }}
-                          className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-neon-cyan hover:bg-cyber-hover rounded-lg transition-colors"
                           title="Edit"
                         >
                           <Pencil className="h-4 w-4" />
@@ -190,7 +197,7 @@ export default function UsersPage() {
                             setDeleteTarget(u);
                             setShowDeleteModal(true);
                           }}
-                          className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-gray-100 transition-colors"
+                          className="p-1.5 text-gray-500 hover:text-neon-red hover:bg-cyber-hover rounded-lg transition-colors"
                           title="Delete"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -204,7 +211,7 @@ export default function UsersPage() {
           </table>
         </div>
         {total > 0 && (
-          <div className="px-6 border-t border-gray-100">
+          <div className="px-6 border-t border-cyber-border">
             <Pagination
               page={page}
               perPage={20}
@@ -223,7 +230,7 @@ export default function UsersPage() {
       >
         <form onSubmit={handleAddUser} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Email
             </label>
             <input
@@ -233,11 +240,11 @@ export default function UsersPage() {
                 setAddForm({ ...addForm, email: e.target.value })
               }
               required
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Name
             </label>
             <input
@@ -247,11 +254,11 @@ export default function UsersPage() {
                 setAddForm({ ...addForm, name: e.target.value })
               }
               required
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Password
             </label>
             <input
@@ -262,11 +269,11 @@ export default function UsersPage() {
               }
               required
               minLength={8}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Role
             </label>
             <select
@@ -274,7 +281,7 @@ export default function UsersPage() {
               onChange={(e) =>
                 setAddForm({ ...addForm, role: e.target.value })
               }
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -284,14 +291,14 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() => setShowAddModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="btn-cyber text-gray-400 border-cyber-border hover:text-gray-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="btn-neon-cyan disabled:opacity-50"
             >
               {submitting ? 'Creating...' : 'Add User'}
             </button>
@@ -307,24 +314,24 @@ export default function UsersPage() {
       >
         <form onSubmit={handleEditUser} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Email
             </label>
             <input
               type="email"
               value={editUser?.email || ''}
               disabled
-              className="w-full px-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-500"
+              className="bg-cyber-bg/50 border-cyber-border text-gray-500 w-full px-4 py-2.5 border rounded-lg text-sm"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Role
             </label>
             <select
               value={editRole}
               onChange={(e) => setEditRole(e.target.value)}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
             >
               <option value="user">User</option>
               <option value="admin">Admin</option>
@@ -334,14 +341,14 @@ export default function UsersPage() {
             <button
               type="button"
               onClick={() => setShowEditModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="btn-cyber text-gray-400 border-cyber-border hover:text-gray-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="btn-neon-cyan disabled:opacity-50"
             >
               {submitting ? 'Saving...' : 'Save Changes'}
             </button>
@@ -355,21 +362,21 @@ export default function UsersPage() {
         onClose={() => setShowDeleteModal(false)}
         title="Delete User"
       >
-        <p className="text-sm text-gray-600 mb-6">
+        <p className="text-sm text-gray-400 mb-6">
           Are you sure you want to delete{' '}
-          <span className="font-semibold">{deleteTarget?.email}</span>? This
+          <span className="text-neon-red font-semibold">{deleteTarget?.email}</span>? This
           action cannot be undone.
         </p>
         <div className="flex justify-end gap-3">
           <button
             onClick={() => setShowDeleteModal(false)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+            className="btn-cyber text-gray-400 border-cyber-border hover:text-gray-200"
           >
             Cancel
           </button>
           <button
             onClick={handleDeleteUser}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+            className="btn-neon-red"
           >
             Delete
           </button>

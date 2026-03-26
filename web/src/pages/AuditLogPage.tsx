@@ -54,7 +54,7 @@ export default function AuditLogPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Audit Log</h1>
+        <h1 className="text-xl font-display font-bold text-gray-100 uppercase tracking-wider">Audit Log</h1>
       </div>
 
       {/* Filters */}
@@ -65,7 +65,7 @@ export default function AuditLogPage() {
             setFilterUser(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all"
         >
           <option value="">All Users</option>
           {usersList.map((u) => (
@@ -82,7 +82,7 @@ export default function AuditLogPage() {
             setPage(1);
           }}
           placeholder="Filter by action..."
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all"
         />
         <input
           type="date"
@@ -91,9 +91,9 @@ export default function AuditLogPage() {
             setFilterDateFrom(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all [color-scheme:dark]"
         />
-        <span className="text-sm text-gray-500">to</span>
+        <span className="text-gray-500 font-mono">to</span>
         <input
           type="date"
           value={filterDateTo}
@@ -101,15 +101,15 @@ export default function AuditLogPage() {
             setFilterDateTo(e.target.value);
             setPage(1);
           }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all [color-scheme:dark]"
         />
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200">
+      <div className="bg-cyber-card border border-cyber-border rounded-lg">
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="table-cyber w-full">
             <thead>
-              <tr className="border-b border-gray-100">
+              <tr className="border-b border-cyber-border">
                 <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Timestamp
                 </th>
@@ -127,18 +127,18 @@ export default function AuditLogPage() {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-cyber-border">
               {loading ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto" />
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-neon-cyan mx-auto" />
                   </td>
                 </tr>
               ) : logs.length === 0 ? (
                 <tr>
                   <td
                     colSpan={5}
-                    className="px-6 py-8 text-center text-sm text-gray-400"
+                    className="px-6 py-8 text-center text-sm text-gray-500"
                   >
                     No audit logs found.
                   </td>
@@ -147,23 +147,23 @@ export default function AuditLogPage() {
                 logs.map((log) => (
                   <tr
                     key={log.id}
-                    className="hover:bg-gray-50 transition-colors"
+                    className="hover:bg-neon-cyan/5 transition-colors"
                   >
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-gray-400 font-mono text-xs">
                       {new Date(log.created_at).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-300">
                       {userName(log.user_id)}
                     </td>
                     <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-indigo-50 text-indigo-700">
+                      <span className="inline-flex items-center bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 px-2 py-0.5 rounded text-xs font-mono">
                         {log.action}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm text-gray-400">
                       {log.resource}
                       {log.resource_id && (
-                        <span className="text-gray-400 ml-1 font-mono text-xs">
+                        <span className="text-gray-600 font-mono text-xs ml-1">
                           ({log.resource_id.slice(0, 8)})
                         </span>
                       )}
@@ -176,7 +176,7 @@ export default function AuditLogPage() {
                               expandedRow === log.id ? null : log.id
                             )
                           }
-                          className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
+                          className="flex items-center gap-1 text-xs text-neon-cyan hover:text-neon-cyan/80 font-mono"
                         >
                           {expandedRow === log.id ? (
                             <>
@@ -189,10 +189,10 @@ export default function AuditLogPage() {
                           )}
                         </button>
                       ) : (
-                        <span className="text-xs text-gray-400">-</span>
+                        <span className="text-xs text-gray-500">-</span>
                       )}
                       {expandedRow === log.id && log.details && (
-                        <div className="mt-2 p-2 bg-gray-50 rounded-lg text-xs text-gray-600 font-mono whitespace-pre-wrap max-w-md">
+                        <div className="mt-2 bg-cyber-bg border border-cyber-border rounded p-2 text-xs text-gray-400 font-mono whitespace-pre-wrap max-w-md">
                           {log.details}
                         </div>
                       )}
@@ -204,7 +204,7 @@ export default function AuditLogPage() {
           </table>
         </div>
         {total > 0 && (
-          <div className="px-6 border-t border-gray-100">
+          <div className="px-6 border-t border-cyber-border">
             <Pagination
               page={page}
               perPage={20}

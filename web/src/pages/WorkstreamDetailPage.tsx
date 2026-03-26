@@ -90,7 +90,7 @@ export default function WorkstreamDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-cyan" />
       </div>
     );
   }
@@ -113,21 +113,21 @@ export default function WorkstreamDetailPage() {
       <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-xl font-display font-bold text-gray-100">
               {workstream.name}
             </h1>
             <StatusBadge status={workstream.status} />
           </div>
-          <div className="flex items-center gap-4 text-sm text-gray-500">
+          <div className="flex items-center gap-4 text-sm">
             {repo && (
               <Link
                 to={`/repositories/${repo.id}`}
-                className="hover:text-indigo-600 transition-colors"
+                className="text-neon-cyan hover:text-neon-cyan/80 transition-colors"
               >
                 {repo.name}
               </Link>
             )}
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 text-gray-400 font-mono">
               <GitBranch className="h-3.5 w-3.5" />
               {workstream.branch_name}
             </span>
@@ -136,7 +136,7 @@ export default function WorkstreamDetailPage() {
                 href={workstream.pull_request_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-1 text-indigo-600 hover:text-indigo-700"
+                className="flex items-center gap-1 text-neon-green hover:text-neon-green/80"
               >
                 <ExternalLink className="h-3.5 w-3.5" />
                 Pull Request
@@ -150,13 +150,13 @@ export default function WorkstreamDetailPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left - Chat/Terminal tabs (2/3) */}
         <div className="lg:col-span-2 h-[600px] flex flex-col">
-          <div className="flex border-b border-gray-200 bg-white rounded-t-xl">
+          <div className="flex bg-cyber-card border-b border-cyber-border rounded-t-lg">
             <button
               onClick={() => setActiveTab('chat')}
               className={`px-4 py-2 text-sm font-medium border-b-2 ${
                 activeTab === 'chat'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-neon-cyan text-neon-cyan'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
               Chat
@@ -165,8 +165,8 @@ export default function WorkstreamDetailPage() {
               onClick={() => setActiveTab('terminal')}
               className={`px-4 py-2 text-sm font-medium border-b-2 ${
                 activeTab === 'terminal'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-neon-cyan text-neon-cyan'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
               Terminal (App)
@@ -175,8 +175,8 @@ export default function WorkstreamDetailPage() {
               onClick={() => setActiveTab('agent-terminal')}
               className={`px-4 py-2 text-sm font-medium border-b-2 ${
                 activeTab === 'agent-terminal'
-                  ? 'border-indigo-500 text-indigo-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
+                  ? 'border-neon-cyan text-neon-cyan'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
               Terminal (Agent)
@@ -193,21 +193,21 @@ export default function WorkstreamDetailPage() {
         <div className="space-y-6">
           {/* Actions */}
           {isActive && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
+            <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+              <h3 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
                 Actions
               </h3>
               <div className="space-y-2">
                 <button
                   onClick={handleComplete}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
+                  className="btn-neon-green w-full flex items-center justify-center gap-2"
                 >
                   <CheckCircle className="h-4 w-4" />
                   Complete
                 </button>
                 <button
                   onClick={handleCancel}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 text-white text-sm font-medium rounded-lg hover:bg-red-700 transition-colors"
+                  className="btn-neon-red w-full flex items-center justify-center gap-2"
                 >
                   <XCircle className="h-4 w-4" />
                   Cancel
@@ -218,8 +218,8 @@ export default function WorkstreamDetailPage() {
 
           {/* Port Mappings */}
           {ports.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
+            <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+              <h3 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
                 Service URLs
               </h3>
               <div className="space-y-2">
@@ -229,7 +229,7 @@ export default function WorkstreamDetailPage() {
                     href={p.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center gap-2 px-3 py-2 bg-gray-50 rounded-lg text-sm text-indigo-600 hover:bg-gray-100 transition-colors"
+                    className="flex items-center gap-2 px-3 py-2 bg-cyber-surface rounded-lg text-sm text-neon-cyan hover:text-neon-cyan/80 transition-colors"
                   >
                     <Globe className="h-4 w-4" />
                     <span className="font-medium">{p.name}</span>
@@ -244,18 +244,18 @@ export default function WorkstreamDetailPage() {
 
           {/* Workstream Port Mappings */}
           {workstream.port_mappings && workstream.port_mappings.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-sm font-semibold text-gray-900 mb-4">
+            <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+              <h3 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
                 Port Mappings
               </h3>
               <div className="space-y-2">
                 {workstream.port_mappings.map((pm, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg text-sm"
+                    className="flex items-center justify-between px-3 py-2 bg-cyber-surface rounded-lg text-sm"
                   >
-                    <span className="text-gray-900 font-medium">{pm.name}</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-300 font-mono font-medium">{pm.name}</span>
+                    <span className="text-gray-500 font-mono">
                       {pm.container_port}/{pm.protocol}
                     </span>
                   </div>
@@ -265,10 +265,10 @@ export default function WorkstreamDetailPage() {
           )}
 
           {/* Pod Logs */}
-          <div className="bg-white rounded-xl border border-gray-200">
+          <div className="bg-cyber-bg border border-cyber-border rounded-lg">
             <button
               onClick={handleFetchLogs}
-              className="w-full flex items-center justify-between px-6 py-4 text-sm font-semibold text-gray-900 hover:bg-gray-50 transition-colors rounded-xl"
+              className="w-full flex items-center justify-between px-6 py-4 text-sm font-mono font-semibold text-gray-300 hover:bg-cyber-hover transition-colors rounded-lg"
             >
               Pod Logs
               {showLogs ? (
@@ -279,7 +279,7 @@ export default function WorkstreamDetailPage() {
             </button>
             {showLogs && (
               <div className="px-6 pb-4">
-                <pre className="bg-gray-900 text-green-400 text-xs p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto font-mono">
+                <pre className="bg-cyber-bg text-green-400 text-xs p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto font-mono border border-cyber-border">
                   {logs || 'Loading...'}
                 </pre>
               </div>
@@ -287,37 +287,37 @@ export default function WorkstreamDetailPage() {
           </div>
 
           {/* Details */}
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
-            <h3 className="text-sm font-semibold text-gray-900 mb-4">
+          <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+            <h3 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
               Details
             </h3>
             <dl className="space-y-2 text-sm">
               {workstream.pod_name && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Pod</dt>
-                  <dd className="text-gray-900 font-mono text-xs">
+                  <dt className="text-gray-500 font-mono">Pod</dt>
+                  <dd className="text-gray-300 font-mono text-xs">
                     {workstream.pod_name}
                   </dd>
                 </div>
               )}
               {workstream.service_name && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Service</dt>
-                  <dd className="text-gray-900 font-mono text-xs">
+                  <dt className="text-gray-500 font-mono">Service</dt>
+                  <dd className="text-gray-300 font-mono text-xs">
                     {workstream.service_name}
                   </dd>
                 </div>
               )}
               <div className="flex justify-between">
-                <dt className="text-gray-500">Created</dt>
-                <dd className="text-gray-900">
+                <dt className="text-gray-500 font-mono">Created</dt>
+                <dd className="text-gray-300 font-mono">
                   {new Date(workstream.created_at).toLocaleString()}
                 </dd>
               </div>
               {workstream.completed_at && (
                 <div className="flex justify-between">
-                  <dt className="text-gray-500">Completed</dt>
-                  <dd className="text-gray-900">
+                  <dt className="text-gray-500 font-mono">Completed</dt>
+                  <dd className="text-gray-300 font-mono">
                     {new Date(workstream.completed_at).toLocaleString()}
                   </dd>
                 </div>

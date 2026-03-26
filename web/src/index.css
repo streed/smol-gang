@@ -1,3 +1,108 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-cyber-bg text-gray-200 font-sans antialiased;
+  }
+
+  /* Custom scrollbar - cyberpunk style */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-cyber-bg;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-neon-cyan/20 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-neon-cyan/40;
+  }
+
+  /* Selection color */
+  ::selection {
+    @apply bg-neon-cyan/30 text-white;
+  }
+}
+
+@layer components {
+  /* Neon text glow */
+  .text-glow-cyan {
+    text-shadow: 0 0 7px rgba(0, 240, 255, 0.6), 0 0 20px rgba(0, 240, 255, 0.2);
+  }
+  .text-glow-green {
+    text-shadow: 0 0 7px rgba(57, 255, 20, 0.6), 0 0 20px rgba(57, 255, 20, 0.2);
+  }
+  .text-glow-magenta {
+    text-shadow: 0 0 7px rgba(255, 0, 255, 0.6), 0 0 20px rgba(255, 0, 255, 0.2);
+  }
+  .text-glow-pink {
+    text-shadow: 0 0 7px rgba(255, 45, 123, 0.6), 0 0 20px rgba(255, 45, 123, 0.2);
+  }
+
+  /* Cyber card - glass morphism + neon border */
+  .cyber-card {
+    @apply bg-cyber-card/80 backdrop-blur-sm border border-cyber-border rounded-lg;
+  }
+  .cyber-card-hover {
+    @apply cyber-card hover:border-neon-cyan/30 hover:shadow-glow transition-all duration-300;
+  }
+
+  /* Neon button variants */
+  .btn-cyber {
+    @apply px-4 py-2 text-sm font-mono font-medium rounded border transition-all duration-200;
+  }
+  .btn-neon-cyan {
+    @apply btn-cyber bg-neon-cyan/10 text-neon-cyan border-neon-cyan/40 hover:bg-neon-cyan/20 hover:shadow-neon-cyan;
+  }
+  .btn-neon-green {
+    @apply btn-cyber bg-neon-green/10 text-neon-green border-neon-green/40 hover:bg-neon-green/20 hover:shadow-neon-green;
+  }
+  .btn-neon-magenta {
+    @apply btn-cyber bg-neon-magenta/10 text-neon-magenta border-neon-magenta/40 hover:bg-neon-magenta/20 hover:shadow-neon-magenta;
+  }
+  .btn-neon-pink {
+    @apply btn-cyber bg-neon-pink/10 text-neon-pink border-neon-pink/40 hover:bg-neon-pink/20 hover:shadow-neon-pink;
+  }
+  .btn-neon-red {
+    @apply btn-cyber bg-neon-red/10 text-neon-red border-neon-red/40 hover:bg-neon-red/20 hover:shadow-neon-red;
+  }
+
+  /* Cyber input */
+  .input-cyber {
+    @apply w-full bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono
+           placeholder:text-gray-600 focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all duration-200;
+  }
+
+  /* Table styles */
+  .table-cyber thead {
+    @apply border-b border-cyber-border;
+  }
+  .table-cyber th {
+    @apply text-left px-4 py-3 text-[10px] font-mono font-semibold text-neon-cyan/60 uppercase tracking-[0.2em];
+  }
+  .table-cyber td {
+    @apply px-4 py-3 text-sm text-gray-300;
+  }
+  .table-cyber tbody tr {
+    @apply border-b border-cyber-border/50 hover:bg-neon-cyan/5 cursor-pointer transition-colors;
+  }
+
+  /* Scan line effect overlay */
+  .scanlines::after {
+    content: '';
+    @apply absolute inset-0 pointer-events-none;
+    background: repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 240, 255, 0.01) 2px,
+      rgba(0, 240, 255, 0.01) 4px
+    );
+  }
+}

@@ -1,7 +1,7 @@
 import { useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../store/auth';
-import { Box } from 'lucide-react';
+import { Cpu } from 'lucide-react';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
@@ -29,32 +29,58 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-indigo-950 to-gray-900 px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-cyber-bg px-4 relative overflow-hidden">
+      {/* Grid pattern background */}
+      <div
+        className="absolute inset-0 opacity-10"
+        style={{
+          backgroundImage:
+            'linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)',
+          backgroundSize: '40px 40px',
+        }}
+      />
+
+      {/* Scanlines overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background:
+            'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)',
+        }}
+      />
+
+      <div className="w-full max-w-md relative z-20">
+        {/* Logo / Branding */}
         <div className="flex flex-col items-center mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <Box className="h-10 w-10 text-indigo-400" />
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              smol-cluster
+          <div className="flex items-center gap-3 mb-2">
+            <Cpu className="h-10 w-10 text-neon-cyan drop-shadow-[0_0_8px_rgba(0,255,255,0.6)]" />
+            <h1 className="text-3xl font-display tracking-widest">
+              <span className="text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">
+                SMOL
+              </span>
+              <span className="text-gray-200">-CLUSTER</span>
             </h1>
           </div>
-          <p className="text-gray-400 text-sm">
+          <p className="text-gray-400 text-sm font-mono tracking-wider">
             Kubernetes Agent Orchestration
           </p>
         </div>
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-6">Sign in</h2>
+        {/* Login card */}
+        <div className="cyber-card bg-cyber-card border border-cyber-border rounded-lg p-8 shadow-[0_0_30px_rgba(0,255,255,0.05)]">
+          <h2 className="text-xl font-display text-gray-200 mb-6 tracking-wide">
+            // AUTHENTICATE
+          </h2>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+            <div className="mb-4 p-3 bg-neon-red/10 border border-neon-red/30 rounded-lg text-sm text-neon-red font-mono">
               {error}
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-mono text-gray-400 mb-1.5 tracking-wider uppercase">
                 Email
               </label>
               <input
@@ -62,12 +88,12 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="you@example.com"
+                className="input-cyber w-full"
+                placeholder="operator@smol-cluster.io"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-mono text-gray-400 mb-1.5 tracking-wider uppercase">
                 Password
               </label>
               <input
@@ -75,19 +101,24 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="input-cyber w-full"
                 placeholder="Enter your password"
               />
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-2.5 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="btn-neon-cyan w-full py-2.5 font-mono tracking-wider uppercase"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
+              {loading ? '> Authenticating...' : '> Sign In'}
             </button>
           </form>
         </div>
+
+        {/* Footer accent */}
+        <p className="text-center text-gray-600 text-xs font-mono mt-6 tracking-widest uppercase">
+          Secure Terminal v2.0
+        </p>
       </div>
     </div>
   );

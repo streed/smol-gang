@@ -79,26 +79,30 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-cyan" />
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-white rounded-xl border border-gray-200">
+    <div className="flex flex-col h-full bg-cyber-card border border-cyber-border rounded-lg">
       {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
-        <h3 className="text-sm font-semibold text-gray-900">Chat</h3>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-cyber-border">
+        <h3 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider">Chat</h3>
         <div className="flex items-center gap-1.5 text-xs">
           {connected ? (
             <>
-              <Wifi className="h-3.5 w-3.5 text-green-500" />
-              <span className="text-green-600">Connected</span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-neon-green opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-neon-green" />
+              </span>
+              <Wifi className="h-3.5 w-3.5 text-neon-green" />
+              <span className="text-neon-green">Connected</span>
             </>
           ) : (
             <>
-              <WifiOff className="h-3.5 w-3.5 text-red-500" />
-              <span className="text-red-600">Disconnected</span>
+              <WifiOff className="h-3.5 w-3.5 text-neon-red" />
+              <span className="text-neon-red">Disconnected</span>
             </>
           )}
         </div>
@@ -107,7 +111,7 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0">
         {allMessages.length === 0 && (
-          <p className="text-center text-sm text-gray-400 py-8">
+          <p className="text-center text-sm text-gray-500 py-8">
             No messages yet. Send a message to get started.
           </p>
         )}
@@ -118,7 +122,7 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
           if (isSystem) {
             return (
               <div key={msg.id || idx} className="flex justify-center">
-                <div className="bg-gray-100 text-gray-500 text-xs px-3 py-1.5 rounded-full">
+                <div className="bg-cyber-surface/50 text-gray-500 border border-cyber-border text-xs px-3 py-1.5 rounded-full">
                   {msg.content}
                 </div>
               </div>
@@ -137,29 +141,29 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
               >
                 <div className="flex items-center gap-1.5 mb-1">
                   {!isUser && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                    <span className="flex items-center gap-1 text-xs text-gray-500 font-mono">
                       {sourceIcon(msg.source)}
                       <span className="capitalize">{msg.source}</span>
                     </span>
                   )}
                   {isUser && (
-                    <span className="flex items-center gap-1 text-xs text-gray-500 ml-auto">
+                    <span className="flex items-center gap-1 text-xs text-gray-500 font-mono ml-auto">
                       <span className="capitalize">{msg.source}</span>
                       {sourceIcon(msg.source)}
                     </span>
                   )}
                 </div>
                 <div
-                  className={`px-4 py-2.5 rounded-2xl text-sm whitespace-pre-wrap ${
+                  className={`px-4 py-2.5 text-sm whitespace-pre-wrap ${
                     isUser
-                      ? 'bg-indigo-600 text-white rounded-br-md'
-                      : 'bg-gray-100 text-gray-900 rounded-bl-md'
+                      ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 rounded-lg rounded-br-sm'
+                      : 'bg-cyber-surface text-gray-300 border border-cyber-border rounded-lg rounded-bl-sm'
                   }`}
                 >
                   {msg.content}
                 </div>
                 <p
-                  className={`text-xs text-gray-400 mt-1 ${
+                  className={`text-xs text-gray-600 mt-1 ${
                     isUser ? 'text-right' : 'text-left'
                   }`}
                 >
@@ -173,7 +177,7 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
       </div>
 
       {/* Input */}
-      <div className="border-t border-gray-200 p-4">
+      <div className="border-t border-cyber-border p-4">
         <div className="flex items-end gap-2">
           <textarea
             value={input}
@@ -181,12 +185,12 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
             onKeyDown={handleKeyDown}
             placeholder="Type a message..."
             rows={1}
-            className="flex-1 resize-none rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            className="input-cyber flex-1 resize-none px-4 py-2.5 text-sm"
           />
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="p-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="p-2.5 bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/40 rounded-lg hover:bg-neon-cyan/20 hover:shadow-neon-cyan disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <Send className="h-4 w-4" />
           </button>

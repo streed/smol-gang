@@ -41,12 +41,19 @@ func SetupRoutes(deps *Deps) http.Handler {
 	repoHandler := &RepoHandler{Queries: deps.Queries}
 	workstreamHandler := &WorkstreamHandler{Queries: deps.Queries, K8s: deps.K8s, Config: deps.Config, Hub: deps.Hub}
 	auditHandler := &AuditHandler{Queries: deps.Queries}
+	slackHandler := &SlackHandler{Config: deps.Config, Queries: deps.Queries, K8s: deps.K8s}
 
 	r.Route("/api/v1", func(r chi.Router) {
 		// Public routes
 		r.Group(func(r chi.Router) {
 			r.Post("/auth/login", authHandler.Login)
 			r.Post("/auth/register", authHandler.Register)
+		})
+
+		// Slack webhook routes (verified via Slack signing secret, not JWT)
+		r.Group(func(r chi.Router) {
+			r.Post("/slack/command", slackHandler.HandleSlashCommand)
+			r.Post("/slack/interact", slackHandler.HandleInteraction)
 		})
 
 		// Internal routes (agent callbacks)

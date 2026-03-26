@@ -15,8 +15,9 @@ type Config struct {
 	GitHubAppPrivateKey string
 	GitHubWebhookSecret string
 
-	SlackBotToken     string
+	SlackBotToken      string
 	SlackSigningSecret string
+	SlackDefaultChannel string
 
 	LLMApiURL string
 	LLMApiKey string
@@ -38,6 +39,7 @@ func Load() (*Config, error) {
 		GitHubWebhookSecret: os.Getenv("GITHUB_WEBHOOK_SECRET"),
 		SlackBotToken:       os.Getenv("SLACK_BOT_TOKEN"),
 		SlackSigningSecret:  os.Getenv("SLACK_SIGNING_SECRET"),
+		SlackDefaultChannel: getEnvDefault("SLACK_DEFAULT_CHANNEL", "smol-cluster"),
 		LLMApiURL:           os.Getenv("LLM_API_URL"),
 		LLMApiKey:           os.Getenv("LLM_API_KEY"),
 		LLMModel:            os.Getenv("LLM_MODEL"),

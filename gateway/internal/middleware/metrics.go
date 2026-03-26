@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"time"
 
-	"smol-cluster/gateway/internal/metrics"
+	"github.com/streed/smol-cluster/gateway/internal/metrics"
 
 	"github.com/go-chi/chi/v5"
 )

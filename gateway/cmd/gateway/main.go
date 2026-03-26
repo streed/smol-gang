@@ -26,15 +26,17 @@ func main() {
 		log.Fatalf("failed to load config: %v", err)
 	}
 
+	ctx := context.Background()
+
 	// Connect to database
-	pool, err := db.NewPool(cfg.DatabaseURL)
+	pool, err := db.NewPool(ctx, cfg.DatabaseURL)
 	if err != nil {
 		log.Fatalf("failed to connect to database: %v", err)
 	}
 	defer pool.Close()
 
 	// Run migrations
-	if err := db.RunMigrations(pool); err != nil {
+	if err := db.RunMigrations(ctx, pool); err != nil {
 		log.Printf("warning: migration error (may be OK if already applied): %v", err)
 	}
 

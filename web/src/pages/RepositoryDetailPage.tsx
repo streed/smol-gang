@@ -64,7 +64,7 @@ export default function RepositoryDetailPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neon-cyan" />
       </div>
     );
   }
@@ -85,17 +85,17 @@ export default function RepositoryDetailPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <GitFork className="h-7 w-7 text-indigo-600" />
+          <GitFork className="h-7 w-7 text-neon-cyan" />
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">{repo.name}</h1>
-            <p className="text-sm text-gray-500">
+            <h1 className="text-xl font-display font-bold text-gray-100">{repo.name}</h1>
+            <p className="text-sm font-mono text-gray-400">
               {repo.github_owner}/{repo.github_repo}
             </p>
           </div>
         </div>
         <button
           onClick={() => setShowModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+          className="btn-neon-cyan flex items-center gap-2"
         >
           <Plus className="h-4 w-4" />
           Start Workstream
@@ -104,22 +104,22 @@ export default function RepositoryDetailPage() {
 
       {/* Info Card */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+          <h2 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
             Repository Info
           </h2>
           <dl className="space-y-3">
             <div className="flex justify-between">
-              <dt className="text-sm text-gray-500">Git URL</dt>
-              <dd className="text-sm text-gray-900 font-mono">{repo.git_url}</dd>
+              <dt className="text-sm font-mono text-gray-500">Git URL</dt>
+              <dd className="text-sm text-gray-300 font-mono">{repo.git_url}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-sm text-gray-500">Default Branch</dt>
-              <dd className="text-sm text-gray-900">{repo.default_branch}</dd>
+              <dt className="text-sm font-mono text-gray-500">Default Branch</dt>
+              <dd className="text-sm text-gray-300 font-mono">{repo.default_branch}</dd>
             </div>
             <div className="flex justify-between">
-              <dt className="text-sm text-gray-500">Created</dt>
-              <dd className="text-sm text-gray-900">
+              <dt className="text-sm font-mono text-gray-500">Created</dt>
+              <dd className="text-sm text-gray-300 font-mono">
                 {new Date(repo.created_at).toLocaleDateString()}
               </dd>
             </div>
@@ -127,53 +127,53 @@ export default function RepositoryDetailPage() {
         </div>
 
         {/* Config */}
-        <div className="bg-white rounded-xl border border-gray-200 p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+          <h2 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
             Configuration
           </h2>
           {repo.config ? (
             <dl className="space-y-3">
               {repo.config.setup_commands && repo.config.setup_commands.length > 0 && (
                 <div>
-                  <dt className="text-sm text-gray-500 mb-1">Setup Commands</dt>
-                  <dd className="text-xs font-mono bg-gray-50 p-2 rounded-lg">
+                  <dt className="text-sm font-mono text-gray-500 mb-1">Setup Commands</dt>
+                  <dd className="bg-cyber-bg text-neon-green text-xs font-mono p-2 rounded">
                     {repo.config.setup_commands.join('\n')}
                   </dd>
                 </div>
               )}
               {repo.config.agent_prompt && (
                 <div>
-                  <dt className="text-sm text-gray-500 mb-1">Agent Prompt</dt>
-                  <dd className="text-sm text-gray-900 bg-gray-50 p-2 rounded-lg">
+                  <dt className="text-sm font-mono text-gray-500 mb-1">Agent Prompt</dt>
+                  <dd className="bg-cyber-bg text-neon-green text-xs font-mono p-2 rounded">
                     {repo.config.agent_prompt}
                   </dd>
                 </div>
               )}
             </dl>
           ) : (
-            <p className="text-sm text-gray-400">No configuration set.</p>
+            <p className="text-sm text-gray-500">No configuration set.</p>
           )}
         </div>
       </div>
 
       {/* Port Mappings */}
       {repo.port_mappings && repo.port_mappings.length > 0 && (
-        <div className="bg-white rounded-xl border border-gray-200 p-6 mb-8">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        <div className="bg-cyber-card border border-cyber-border rounded-lg p-6 mb-8">
+          <h2 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider mb-4">
             Port Mappings
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {repo.port_mappings.map((pm, idx) => (
               <div
                 key={idx}
-                className="bg-gray-50 rounded-lg p-3 border border-gray-100"
+                className="bg-cyber-surface rounded-lg p-3 border border-cyber-border"
               >
-                <p className="text-sm font-medium text-gray-900">{pm.name}</p>
+                <p className="text-sm font-medium text-gray-300">{pm.name}</p>
                 <p className="text-xs text-gray-500">
                   Port {pm.container_port} ({pm.protocol})
                 </p>
                 {pm.description && (
-                  <p className="text-xs text-gray-400 mt-1">{pm.description}</p>
+                  <p className="text-xs text-gray-500 mt-1">{pm.description}</p>
                 )}
               </div>
             ))}
@@ -182,36 +182,36 @@ export default function RepositoryDetailPage() {
       )}
 
       {/* Active Workstreams */}
-      <div className="bg-white rounded-xl border border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">
+      <div className="bg-cyber-card border border-cyber-border rounded-lg">
+        <div className="px-6 py-4 border-b border-cyber-border">
+          <h2 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider">
             Active Workstreams ({activeWorkstreams.length})
           </h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="table-cyber w-full">
             <thead>
-              <tr className="border-b border-gray-100">
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+              <tr className="border-b border-cyber-border">
+                <th className="text-left text-xs font-mono font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Name
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                <th className="text-left text-xs font-mono font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Branch
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                <th className="text-left text-xs font-mono font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Status
                 </th>
-                <th className="text-left text-xs font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
+                <th className="text-left text-xs font-mono font-medium text-gray-500 uppercase tracking-wider px-6 py-3">
                   Created
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-cyber-border">
               {activeWorkstreams.length === 0 ? (
                 <tr>
                   <td
                     colSpan={4}
-                    className="px-6 py-8 text-center text-sm text-gray-400"
+                    className="px-6 py-8 text-center text-sm text-gray-500"
                   >
                     No active workstreams.
                   </td>
@@ -221,18 +221,18 @@ export default function RepositoryDetailPage() {
                   <tr
                     key={ws.id}
                     onClick={() => navigate(`/workstreams/${ws.id}`)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
+                    className="hover:bg-neon-cyan/5 cursor-pointer transition-colors"
                   >
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-300">
                       {ws.name}
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm font-mono text-gray-500">
                       {ws.branch_name}
                     </td>
                     <td className="px-6 py-4">
                       <StatusBadge status={ws.status} />
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
+                    <td className="px-6 py-4 text-sm font-mono text-gray-500">
                       {new Date(ws.created_at).toLocaleDateString()}
                     </td>
                   </tr>
@@ -251,7 +251,7 @@ export default function RepositoryDetailPage() {
       >
         <form onSubmit={handleCreateWorkstream} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Name
             </label>
             <input
@@ -261,12 +261,12 @@ export default function RepositoryDetailPage() {
                 setWsForm({ ...wsForm, name: e.target.value })
               }
               required
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
               placeholder="fix-login-bug"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Description
             </label>
             <textarea
@@ -275,12 +275,12 @@ export default function RepositoryDetailPage() {
                 setWsForm({ ...wsForm, description: e.target.value })
               }
               rows={3}
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
               placeholder="Describe what this workstream should accomplish..."
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-mono text-gray-400 mb-1">
               Branch Name
             </label>
             <input
@@ -289,7 +289,7 @@ export default function RepositoryDetailPage() {
               onChange={(e) =>
                 setWsForm({ ...wsForm, branch_name: e.target.value })
               }
-              className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="input-cyber w-full"
               placeholder="feature/fix-login-bug"
             />
           </div>
@@ -297,14 +297,14 @@ export default function RepositoryDetailPage() {
             <button
               type="button"
               onClick={() => setShowModal(false)}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50"
+              className="btn-cyber text-gray-400 border-cyber-border hover:text-gray-200"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+              className="btn-neon-cyan disabled:opacity-50"
             >
               {submitting ? 'Creating...' : 'Start Workstream'}
             </button>

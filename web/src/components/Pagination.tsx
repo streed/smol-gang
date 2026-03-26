@@ -22,30 +22,29 @@ export default function Pagination({
 
   return (
     <div className="flex items-center justify-between py-3">
-      <p className="text-sm text-gray-700">
-        Showing{' '}
-        <span className="font-medium">{Math.min((page - 1) * perPage + 1, total)}</span>
-        {' to '}
-        <span className="font-medium">{Math.min(page * perPage, total)}</span>
-        {' of '}
-        <span className="font-medium">{total}</span> results
+      <p className="text-xs font-mono text-gray-500">
+        <span className="text-gray-400">{Math.min((page - 1) * perPage + 1, total)}</span>
+        <span className="text-gray-600">{' - '}</span>
+        <span className="text-gray-400">{Math.min(page * perPage, total)}</span>
+        <span className="text-gray-600">{' of '}</span>
+        <span className="text-neon-cyan/70">{total}</span>
       </p>
       <div className="flex items-center gap-1">
         <button
           onClick={() => onPageChange(page - 1)}
           disabled={page <= 1}
-          className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-xs font-mono text-gray-400 bg-cyber-card border border-cyber-border rounded hover:border-neon-cyan/30 hover:text-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
-          Previous
+          PREV
         </button>
         {pages.map((p) => (
           <button
             key={p}
             onClick={() => onPageChange(p)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-lg border ${
+            className={`px-3 py-1.5 text-xs font-mono rounded border transition-all ${
               p === page
-                ? 'bg-indigo-600 text-white border-indigo-600'
-                : 'text-gray-700 bg-white border-gray-300 hover:bg-gray-50'
+                ? 'bg-neon-cyan/10 text-neon-cyan border-neon-cyan/40 shadow-neon-cyan'
+                : 'text-gray-400 bg-cyber-card border-cyber-border hover:border-neon-cyan/30 hover:text-neon-cyan'
             }`}
           >
             {p}
@@ -54,9 +53,9 @@ export default function Pagination({
         <button
           onClick={() => onPageChange(page + 1)}
           disabled={page >= totalPages}
-          className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="px-3 py-1.5 text-xs font-mono text-gray-400 bg-cyber-card border border-cyber-border rounded hover:border-neon-cyan/30 hover:text-neon-cyan disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
-          Next
+          NEXT
         </button>
       </div>
     </div>
