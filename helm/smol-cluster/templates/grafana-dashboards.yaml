@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-grafana-dashboards
+  name: {{ include "smol-gang.fullname" . }}-grafana-dashboards
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: grafana
 data:
   workstream-overview.json: |
@@ -134,7 +134,7 @@ data:
       ],
       "refresh": "30s",
       "schemaVersion": 39,
-      "tags": ["smol-cluster"],
+      "tags": ["smol-gang"],
       "templating": {
         "list": [
           {
@@ -219,7 +219,7 @@ data:
       ],
       "refresh": "10s",
       "schemaVersion": 39,
-      "tags": ["smol-cluster", "logs"],
+      "tags": ["smol-gang", "logs"],
       "templating": {
         "list": [
           {
@@ -372,7 +372,7 @@ data:
       ],
       "refresh": "30s",
       "schemaVersion": 39,
-      "tags": ["smol-cluster", "api"],
+      "tags": ["smol-gang", "api"],
       "templating": {
         "list": [
           {
@@ -479,7 +479,7 @@ data:
       ],
       "refresh": "30s",
       "schemaVersion": 39,
-      "tags": ["smol-cluster", "llm"],
+      "tags": ["smol-gang", "llm"],
       "templating": {
         "list": [
           {

@@ -1,27 +1,27 @@
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-prometheus
+  name: {{ include "smol-gang.fullname" . }}-prometheus
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 spec:
-  serviceName: {{ include "smol-cluster.fullname" . }}-prometheus
+  serviceName: {{ include "smol-gang.fullname" . }}-prometheus
   replicas: 1
   selector:
     matchLabels:
-      {{- include "smol-cluster.selectorLabels" . | nindent 6 }}
+      {{- include "smol-gang.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: prometheus
   template:
     metadata:
       labels:
-        {{- include "smol-cluster.selectorLabels" . | nindent 8 }}
+        {{- include "smol-gang.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: prometheus
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/prometheus-config.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "smol-cluster.fullname" . }}-prometheus
+      serviceAccountName: {{ include "smol-gang.fullname" . }}-prometheus
       containers:
         - name: prometheus
           image: prom/prometheus:v2.51.0
@@ -61,7 +61,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "smol-cluster.fullname" . }}-prometheus-config
+            name: {{ include "smol-gang.fullname" . }}-prometheus-config
   volumeClaimTemplates:
     - metadata:
         name: data
@@ -74,10 +74,10 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-prometheus
+  name: {{ include "smol-gang.fullname" . }}-prometheus
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 spec:
   type: ClusterIP
@@ -87,24 +87,24 @@ spec:
       targetPort: http
       protocol: TCP
   selector:
-    {{- include "smol-cluster.selectorLabels" . | nindent 4 }}
+    {{- include "smol-gang.selectorLabels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-prometheus
+  name: {{ include "smol-gang.fullname" . }}-prometheus
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-prometheus
+  name: {{ include "smol-gang.fullname" . }}-prometheus
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 rules:
   - apiGroups: [""]
@@ -119,15 +119,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-prometheus
+  name: {{ include "smol-gang.fullname" . }}-prometheus
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "smol-cluster.fullname" . }}-prometheus
+  name: {{ include "smol-gang.fullname" . }}-prometheus
 subjects:
   - kind: ServiceAccount
-    name: {{ include "smol-cluster.fullname" . }}-prometheus
+    name: {{ include "smol-gang.fullname" . }}-prometheus
     namespace: {{ .Release.Namespace }}

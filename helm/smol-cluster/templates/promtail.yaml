@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-promtail-config
+  name: {{ include "smol-gang.fullname" . }}-promtail-config
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: promtail
 data:
   promtail.yaml: |
@@ -16,7 +16,7 @@ data:
       filename: /tmp/positions.yaml
 
     clients:
-      - url: http://{{ include "smol-cluster.fullname" . }}-loki:3100/loki/api/v1/push
+      - url: http://{{ include "smol-gang.fullname" . }}-loki:3100/loki/api/v1/push
 
     scrape_configs:
       - job_name: kubernetes-pods
@@ -71,25 +71,25 @@ data:
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-promtail
+  name: {{ include "smol-gang.fullname" . }}-promtail
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: promtail
 spec:
   selector:
     matchLabels:
-      {{- include "smol-cluster.selectorLabels" . | nindent 6 }}
+      {{- include "smol-gang.selectorLabels" . | nindent 6 }}
       app.kubernetes.io/component: promtail
   template:
     metadata:
       labels:
-        {{- include "smol-cluster.selectorLabels" . | nindent 8 }}
+        {{- include "smol-gang.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: promtail
       annotations:
         checksum/config: {{ include (print $.Template.BasePath "/promtail.yaml") . | sha256sum }}
     spec:
-      serviceAccountName: {{ include "smol-cluster.fullname" . }}-promtail
+      serviceAccountName: {{ include "smol-gang.fullname" . }}-promtail
       containers:
         - name: promtail
           image: grafana/promtail:2.9.0
@@ -121,7 +121,7 @@ spec:
       volumes:
         - name: config
           configMap:
-            name: {{ include "smol-cluster.fullname" . }}-promtail-config
+            name: {{ include "smol-gang.fullname" . }}-promtail-config
         - name: pods-logs
           hostPath:
             path: /var/log/pods
@@ -132,18 +132,18 @@ spec:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-promtail
+  name: {{ include "smol-gang.fullname" . }}-promtail
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: promtail
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-promtail
+  name: {{ include "smol-gang.fullname" . }}-promtail
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: promtail
 rules:
   - apiGroups: [""]
@@ -153,15 +153,15 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-promtail
+  name: {{ include "smol-gang.fullname" . }}-promtail
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: promtail
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: {{ include "smol-cluster.fullname" . }}-promtail
+  name: {{ include "smol-gang.fullname" . }}-promtail
 subjects:
   - kind: ServiceAccount
-    name: {{ include "smol-cluster.fullname" . }}-promtail
+    name: {{ include "smol-gang.fullname" . }}-promtail
     namespace: {{ .Release.Namespace }}

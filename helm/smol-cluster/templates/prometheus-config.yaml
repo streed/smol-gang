@@ -1,10 +1,10 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: {{ include "smol-cluster.fullname" . }}-prometheus-config
+  name: {{ include "smol-gang.fullname" . }}-prometheus-config
   namespace: {{ .Release.Namespace }}
   labels:
-    {{- include "smol-cluster.labels" . | nindent 4 }}
+    {{- include "smol-gang.labels" . | nindent 4 }}
     app.kubernetes.io/component: prometheus
 data:
   prometheus.yml: |
@@ -22,7 +22,7 @@ data:
                 - {{ .Release.Namespace }}
         relabel_configs:
           - source_labels: [__meta_kubernetes_service_name]
-            regex: {{ include "smol-cluster.fullname" . }}-gateway
+            regex: {{ include "smol-gang.fullname" . }}-gateway
             action: keep
           - source_labels: [__meta_kubernetes_endpoint_port_name]
             regex: http
