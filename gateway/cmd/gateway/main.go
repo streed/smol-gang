@@ -10,14 +10,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/streed/smol-cluster/gateway/internal/auth"
-	"github.com/streed/smol-cluster/gateway/internal/config"
-	"github.com/streed/smol-cluster/gateway/internal/db"
-	"github.com/streed/smol-cluster/gateway/internal/handlers"
-	"github.com/streed/smol-cluster/gateway/internal/k8s"
-	"github.com/streed/smol-cluster/gateway/internal/models"
-	"github.com/streed/smol-cluster/gateway/internal/slack"
-	"github.com/streed/smol-cluster/gateway/internal/ws"
+	"github.com/streed/smol-gang/gateway/internal/config"
+	"github.com/streed/smol-gang/gateway/internal/coordinator"
+	"github.com/streed/smol-gang/gateway/internal/db"
+	"github.com/streed/smol-gang/gateway/internal/handlers"
+	"github.com/streed/smol-gang/gateway/internal/k8s"
+	"github.com/streed/smol-gang/gateway/internal/llm"
+	"github.com/streed/smol-gang/gateway/internal/slack"
+	"github.com/streed/smol-gang/gateway/internal/ws"
 )
 
 func main() {
@@ -42,14 +42,14 @@ func main() {
 
 	queries := db.NewQueries(pool)
 
-	// Create default admin user if configured and no users exist
-	createDefaultAdmin(queries)
-
 	// Initialize K8s client
 	k8sClient, err := k8s.NewClient(cfg)
 	if err != nil {
 		log.Printf("warning: k8s client init failed (OK for local dev without k8s): %v", err)
 	}
+
+	// Initialize LLM client
+	llmClient := llm.NewClient(cfg)
 
 	// Initialize WebSocket hub
 	hub := ws.NewHub()
@@ -63,6 +63,7 @@ func main() {
 		Queries: queries,
 		K8s:     k8sClient,
 		Hub:     hub,
+		LLM:     llmClient,
 	}
 	router := handlers.SetupRoutes(deps)
 
@@ -83,6 +84,10 @@ func main() {
 			log.Printf("slack bot error: %v", err)
 		}
 	}()
+
+	// Start coordinator for DAG plan execution
+	coord := coordinator.New(queries, k8sClient, cfg, hub)
+	go coord.Run(ctx)
 
 	// Start server
 	go func() {
@@ -110,34 +115,3 @@ func main() {
 	log.Println("server stopped")
 }
 
-func createDefaultAdmin(queries *db.Queries) {
-	email := os.Getenv("ADMIN_EMAIL")
-	password := os.Getenv("ADMIN_PASSWORD")
-	if email == "" || password == "" {
-		return
-	}
-
-	count, err := queries.CountUsers(context.Background())
-	if err != nil || count > 0 {
-		return
-	}
-
-	hash, err := auth.HashPassword(password)
-	if err != nil {
-		log.Printf("failed to hash admin password: %v", err)
-		return
-	}
-
-	_, err = queries.CreateUser(context.Background(), models.User{
-		Email:        email,
-		PasswordHash: hash,
-		Name:         "Admin",
-		Role:         "admin",
-	})
-	if err != nil {
-		log.Printf("failed to create default admin: %v", err)
-		return
-	}
-
-	log.Printf("created default admin user: %s", email)
-}

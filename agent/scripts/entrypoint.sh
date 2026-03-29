@@ -3,7 +3,7 @@ set -euo pipefail
 
 # =============================================================================
 # smol-gang Agent Entrypoint
-# Orchestrates repo clone, setup, agent bridge, and smolagent ACP server.
+# Orchestrates repo clone, setup, and bridge server.
 # =============================================================================
 
 LOG_PREFIX="[smol-gang-agent]"
@@ -23,7 +23,6 @@ log_error() {
 : "${BRANCH_NAME:?BRANCH_NAME is required}"
 : "${GIT_TOKEN:?GIT_TOKEN is required}"
 : "${LLM_API_URL:?LLM_API_URL is required}"
-: "${LLM_API_KEY:?LLM_API_KEY is required}"
 : "${LLM_MODEL:?LLM_MODEL is required}"
 : "${AGENT_PROMPT:?AGENT_PROMPT is required}"
 : "${GATEWAY_URL:?GATEWAY_URL is required}"
@@ -31,7 +30,7 @@ log_error() {
 : "${GATEWAY_TOKEN:?GATEWAY_TOKEN is required}"
 
 # Optional environment variables with defaults
-ACP_PORT="${ACP_PORT:-8021}"
+LLM_API_KEY="${LLM_API_KEY:-}"
 BRIDGE_PORT="${BRIDGE_PORT:-8022}"
 SETUP_COMMANDS="${SETUP_COMMANDS:-}"
 
@@ -71,10 +70,9 @@ report_status() {
     local status="$1"
     local message="${2:-}"
 
-    curl -sf -X POST \
+    curl -sf -o /dev/null -X POST \
         "${GATEWAY_URL}/api/v1/internal/workstreams/${WORKSTREAM_ID}/agent-message" \
         -H "Content-Type: application/json" \
-        -H "Authorization: Bearer ${GATEWAY_TOKEN}" \
         -d "$(jq -n --arg s "$status" --arg m "$message" \
             '{source: "agent", content: ("[status:\(.s)] " + .m)}')" \
         2>/dev/null || log_error "Failed to report status: ${status}"
@@ -104,15 +102,29 @@ git config user.name "smol-gang-agent"
 # ---------------------------------------------------------------------------
 # Step 2: Create and checkout the feature branch
 # ---------------------------------------------------------------------------
+BASE_BRANCH="${BASE_BRANCH:-}"
 log "Creating branch: ${BRANCH_NAME}"
 
-# Check if the branch already exists on the remote
+# If a base branch is specified (plan root branch), switch to it first
+if [[ -n "$BASE_BRANCH" ]]; then
+    log "Switching to base branch: ${BASE_BRANCH}"
+    if git ls-remote --exit-code --heads origin "$BASE_BRANCH" >/dev/null 2>&1; then
+        git fetch origin "+refs/heads/${BASE_BRANCH}:refs/remotes/origin/${BASE_BRANCH}"
+        git checkout -b "$BASE_BRANCH" "origin/$BASE_BRANCH"
+    else
+        log "Base branch ${BASE_BRANCH} does not exist remotely, creating from HEAD"
+        git checkout -b "$BASE_BRANCH"
+        git push -u origin "$BASE_BRANCH" 2>&1 || true
+    fi
+fi
+
+# Check if the task branch already exists on the remote
 if git ls-remote --exit-code --heads origin "$BRANCH_NAME" >/dev/null 2>&1; then
     log "Branch ${BRANCH_NAME} exists on remote, checking out"
-    git fetch origin "$BRANCH_NAME"
-    git checkout "$BRANCH_NAME"
+    git fetch origin "+refs/heads/${BRANCH_NAME}:refs/remotes/origin/${BRANCH_NAME}"
+    git checkout -b "$BRANCH_NAME" "origin/$BRANCH_NAME"
 else
-    log "Creating new branch ${BRANCH_NAME}"
+    log "Creating new branch ${BRANCH_NAME} from ${BASE_BRANCH:-HEAD}"
     git checkout -b "$BRANCH_NAME"
 fi
 
@@ -140,72 +152,14 @@ touch /workspace/.setup-done
 log "Signaled app runner that setup is complete"
 
 # ---------------------------------------------------------------------------
-# Step 4: Start smolagent in ACP mode
-# ---------------------------------------------------------------------------
-log "Starting smolagent ACP server on port ${ACP_PORT}"
-
-export LITELLM_API_BASE="$LLM_API_URL"
-export LITELLM_API_KEY="$LLM_API_KEY"
-export LITELLM_MODEL="$LLM_MODEL"
-
-# Start smolagent ACP server in the background
-smolagent \
-    --model-type "LiteLLMModel" \
-    --model-id "$LLM_MODEL" \
-    --port "$ACP_PORT" \
-    --host "0.0.0.0" \
-    > /tmp/smolagent.log 2>&1 &
-
-SMOLAGENT_PID=$!
-echo "$SMOLAGENT_PID" > "$PIDS_FILE"
-log "smolagent started with PID ${SMOLAGENT_PID}"
-
-# Wait for smolagent to become healthy
-RETRIES=0
-MAX_RETRIES=30
-while [[ $RETRIES -lt $MAX_RETRIES ]]; do
-    if curl -sf "http://127.0.0.1:${ACP_PORT}/" >/dev/null 2>&1; then
-        log "smolagent ACP server is ready"
-        break
-    fi
-
-    # Check that the process is still alive
-    if ! kill -0 "$SMOLAGENT_PID" 2>/dev/null; then
-        log_error "smolagent process died during startup"
-        log_error "smolagent log:"
-        cat /tmp/smolagent.log >&2
-        report_status "error" "smolagent failed to start"
-        exit 1
-    fi
-
-    RETRIES=$((RETRIES + 1))
-    sleep 2
-done
-
-if [[ $RETRIES -ge $MAX_RETRIES ]]; then
-    log_error "smolagent did not become ready in time"
-    cat /tmp/smolagent.log >&2
-    report_status "error" "smolagent startup timeout"
-    exit 1
-fi
-
-# ---------------------------------------------------------------------------
-# Step 5: Start the bridge server
+# Step 4: Start the bridge server
 # ---------------------------------------------------------------------------
 log "Starting bridge server on port ${BRIDGE_PORT}"
 
-python3 /app/scripts/bridge.py \
-    --port "$BRIDGE_PORT" \
-    --acp-port "$ACP_PORT" \
-    --gateway-url "$GATEWAY_URL" \
-    --workstream-id "$WORKSTREAM_ID" \
-    --gateway-token "$GATEWAY_TOKEN" \
-    --workspace "$WORKSPACE" \
-    --branch "$BRANCH_NAME" \
-    > /tmp/bridge.log 2>&1 &
+node /app/scripts/bridge.mjs > /tmp/bridge.log 2>&1 &
 
 BRIDGE_PID=$!
-echo "$BRIDGE_PID" >> "$PIDS_FILE"
+echo "$BRIDGE_PID" > "$PIDS_FILE"
 log "Bridge started with PID ${BRIDGE_PID}"
 
 # Wait for bridge to become healthy
@@ -235,46 +189,24 @@ if [[ $RETRIES -ge 15 ]]; then
 fi
 
 # ---------------------------------------------------------------------------
-# Step 6: Send initial prompt to agent
+# Step 5: Send initial prompt to agent via bridge
 # ---------------------------------------------------------------------------
 log "Sending initial prompt to agent"
 report_status "running" "Agent is ready, sending initial prompt..."
 
-INITIAL_RESPONSE=$(curl -sf -X POST \
+curl -sf -X POST \
     "http://127.0.0.1:${BRIDGE_PORT}/message" \
     -H "Content-Type: application/json" \
     -d "$(jq -n --arg p "$AGENT_PROMPT" '{message: $p}')" \
-    2>&1) || true
+    > /dev/null 2>&1 &
 
-if [[ -n "$INITIAL_RESPONSE" ]]; then
-    log "Initial prompt sent, agent is working"
-    report_status "running" "Agent is actively working on the task"
-else
-    log "Initial prompt sent (no immediate response)"
-fi
+log "Initial prompt dispatched"
 
 # ---------------------------------------------------------------------------
-# Step 7: Wait for child processes
+# Step 6: Wait for bridge process
 # ---------------------------------------------------------------------------
-log "Agent pod is running. Waiting for processes..."
+log "Agent pod is running. Waiting for bridge..."
 
-# Monitor child processes — exit if either dies
-while true; do
-    if ! kill -0 "$SMOLAGENT_PID" 2>/dev/null; then
-        log_error "smolagent process exited"
-        SMOLAGENT_EXIT=$(wait "$SMOLAGENT_PID" 2>/dev/null; echo $?)
-        log "smolagent exit code: ${SMOLAGENT_EXIT}"
-        break
-    fi
-
-    if ! kill -0 "$BRIDGE_PID" 2>/dev/null; then
-        log_error "Bridge process exited"
-        BRIDGE_EXIT=$(wait "$BRIDGE_PID" 2>/dev/null; echo $?)
-        log "Bridge exit code: ${BRIDGE_EXIT}"
-        break
-    fi
-
-    sleep 5
-done
+wait "$BRIDGE_PID" 2>/dev/null || true
 
 log "Agent pod main loop ended"

@@ -1,4 +1,4 @@
-module github.com/streed/smol-cluster/gateway
+module github.com/streed/smol-gang/gateway
 
 go 1.23.0
 

@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/streed/smol-cluster/gateway/internal/auth"
-	"github.com/streed/smol-cluster/gateway/internal/db"
-	"github.com/streed/smol-cluster/gateway/internal/models"
+	"github.com/streed/smol-gang/gateway/internal/auth"
+	"github.com/streed/smol-gang/gateway/internal/db"
+	"github.com/streed/smol-gang/gateway/internal/models"
 )
 
 type contextKey string
@@ -22,19 +22,27 @@ const (
 func AuthMiddleware(jwtSecret string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := r.Header.Get("Authorization")
-			if header == "" {
-				writeError(w, http.StatusUnauthorized, "missing authorization header")
+			var tokenStr string
+
+			// Try Authorization header first
+			if header := r.Header.Get("Authorization"); header != "" {
+				parts := strings.SplitN(header, " ", 2)
+				if len(parts) == 2 && strings.ToLower(parts[0]) == "bearer" {
+					tokenStr = parts[1]
+				}
+			}
+
+			// Fall back to ?token= query param (for WebSocket connections)
+			if tokenStr == "" {
+				tokenStr = r.URL.Query().Get("token")
+			}
+
+			if tokenStr == "" {
+				writeError(w, http.StatusUnauthorized, "missing authorization")
 				return
 			}
 
-			parts := strings.SplitN(header, " ", 2)
-			if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
-				writeError(w, http.StatusUnauthorized, "invalid authorization format")
-				return
-			}
-
-			claims, err := auth.ValidateToken(parts[1], jwtSecret)
+			claims, err := auth.ValidateToken(tokenStr, jwtSecret)
 			if err != nil {
 				writeError(w, http.StatusUnauthorized, "invalid token")
 				return

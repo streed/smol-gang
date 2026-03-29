@@ -19,9 +19,14 @@ type Config struct {
 	SlackSigningSecret string
 	SlackDefaultChannel string
 
-	LLMApiURL string
-	LLMApiKey string
-	LLMModel  string
+	LLMApiURL   string
+	LLMApiKey   string
+	LLMModel    string
+	LLMProvider string
+
+	GitHubClientID     string
+	GitHubClientSecret string
+	FrontendURL        string
 
 	AgentImage    string
 	AppRunnerImage string
@@ -43,6 +48,10 @@ func Load() (*Config, error) {
 		LLMApiURL:           os.Getenv("LLM_API_URL"),
 		LLMApiKey:           os.Getenv("LLM_API_KEY"),
 		LLMModel:            os.Getenv("LLM_MODEL"),
+		LLMProvider:         getEnvDefault("LLM_PROVIDER", "ollama-api"),
+		GitHubClientID:      os.Getenv("GITHUB_CLIENT_ID"),
+		GitHubClientSecret:  os.Getenv("GITHUB_CLIENT_SECRET"),
+		FrontendURL:         getEnvDefault("FRONTEND_URL", "http://localhost:5000"),
 		AgentImage:          getEnvDefault("AGENT_IMAGE", "smol-gang/agent:latest"),
 		AppRunnerImage:      getEnvDefault("APP_RUNNER_IMAGE", "smol-gang/agent:latest-apprunner"),
 		LogLevel:            getEnvDefault("LOG_LEVEL", "info"),

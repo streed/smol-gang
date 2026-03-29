@@ -7,8 +7,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/streed/smol-cluster/gateway/internal/db"
-	"github.com/streed/smol-cluster/gateway/internal/models"
+	"github.com/streed/smol-gang/gateway/internal/db"
+	"github.com/streed/smol-gang/gateway/internal/models"
 )
 
 type UserHandler struct {

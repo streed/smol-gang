@@ -13,6 +13,8 @@ import WorkstreamsPage from './pages/WorkstreamsPage';
 import WorkstreamDetailPage from './pages/WorkstreamDetailPage';
 import UsersPage from './pages/UsersPage';
 import AuditLogPage from './pages/AuditLogPage';
+import OrchestratorPage from './pages/OrchestratorPage';
+import GitHubCallbackPage from './pages/GitHubCallbackPage';
 
 function App() {
   const initialize = useAuthStore((s) => s.initialize);
@@ -35,9 +37,15 @@ function App() {
       <Toaster position="top-right" />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/auth/github/callback" element={<GitHubCallbackPage />} />
         <Route element={<ProtectedRoute />}>
+          {/* Orchestrator is full-screen — no sidebar Layout */}
+          <Route path="/" element={<Navigate to="/orchestrator" replace />} />
+          <Route path="/orchestrator" element={<OrchestratorPage />} />
+          <Route path="/orchestrator/:planId" element={<OrchestratorPage />} />
+
+          {/* Other pages use the sidebar Layout */}
           <Route element={<Layout />}>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/repositories" element={<RepositoriesPage />} />
             <Route path="/repositories/:id" element={<RepositoryDetailPage />} />

@@ -42,6 +42,9 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		migrationCreateAuditLogs,
 		migrationCreateMessages,
 		migrationCreateIndexes,
+		migrationAddGitHubToUsers,
+		migrationCreateDAGTables,
+		migrationAddPlanConversations,
 	}
 
 	for i, migration := range migrations {
@@ -141,4 +144,93 @@ CREATE INDEX IF NOT EXISTS idx_audit_logs_workstream ON audit_logs(workstream_id
 CREATE INDEX IF NOT EXISTS idx_audit_logs_created ON audit_logs(created_at);
 CREATE INDEX IF NOT EXISTS idx_messages_workstream ON messages(workstream_id);
 CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);
+`
+
+const migrationAddGitHubToUsers = `
+ALTER TABLE users ADD COLUMN IF NOT EXISTS github_id BIGINT;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS github_login VARCHAR(255) NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS github_access_token TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ALTER COLUMN password_hash SET DEFAULT '';
+CREATE UNIQUE INDEX IF NOT EXISTS idx_users_github_id ON users(github_id) WHERE github_id IS NOT NULL;
+`
+
+const migrationCreateDAGTables = `
+-- Plans table: top-level execution unit
+CREATE TABLE IF NOT EXISTS plans (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    prompt TEXT NOT NULL,
+    plan_json JSONB,
+    root_branch VARCHAR(255) NOT NULL DEFAULT '',
+    root_pr INTEGER NOT NULL DEFAULT 0,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending_approval',
+    repository_id UUID NOT NULL REFERENCES repositories(id),
+    base_branch VARCHAR(255) NOT NULL DEFAULT 'main',
+    complexity VARCHAR(20) NOT NULL DEFAULT 'simple',
+    complexity_reasoning TEXT NOT NULL DEFAULT '',
+    created_by_id UUID NOT NULL REFERENCES users(id),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Tasks table: individual work items within a plan
+CREATE TABLE IF NOT EXISTS tasks (
+    id VARCHAR(255) NOT NULL,
+    plan_id UUID NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+    description TEXT NOT NULL DEFAULT '',
+    depends_on JSONB DEFAULT '[]',
+    file_scope JSONB DEFAULT '[]',
+    acceptance_criteria JSONB DEFAULT '[]',
+    model_tier VARCHAR(20) NOT NULL DEFAULT 'auto',
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    branch_name VARCHAR(255) NOT NULL DEFAULT '',
+    pr_number INTEGER NOT NULL DEFAULT 0,
+    pr_url TEXT NOT NULL DEFAULT '',
+    worker_id VARCHAR(255),
+    lease_expiry TIMESTAMPTZ,
+    workstream_id UUID REFERENCES workstreams(id),
+    error TEXT NOT NULL DEFAULT '',
+    wave INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (id, plan_id)
+);
+
+-- Task conversations: LLM conversation history per task
+CREATE TABLE IF NOT EXISTS task_conversations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    task_id VARCHAR(255) NOT NULL,
+    plan_id UUID NOT NULL,
+    role VARCHAR(50) NOT NULL,
+    content TEXT NOT NULL,
+    sequence INTEGER NOT NULL DEFAULT 0,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY (task_id, plan_id) REFERENCES tasks(id, plan_id) ON DELETE CASCADE
+);
+
+-- Events: durable event log for idempotent processing
+CREATE TABLE IF NOT EXISTS events (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    plan_id UUID NOT NULL REFERENCES plans(id) ON DELETE CASCADE,
+    task_id VARCHAR(255) NOT NULL DEFAULT '',
+    event_type VARCHAR(100) NOT NULL,
+    payload JSONB,
+    processed BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Indexes
+CREATE INDEX IF NOT EXISTS idx_plans_status ON plans(status);
+CREATE INDEX IF NOT EXISTS idx_plans_repo ON plans(repository_id);
+CREATE INDEX IF NOT EXISTS idx_plans_created_by ON plans(created_by_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_plan ON tasks(plan_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(plan_id, status);
+CREATE INDEX IF NOT EXISTS idx_tasks_worker ON tasks(worker_id);
+CREATE INDEX IF NOT EXISTS idx_tasks_lease ON tasks(lease_expiry) WHERE lease_expiry IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_task_conversations_task ON task_conversations(task_id, plan_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_events_plan ON events(plan_id, processed);
+CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
+`
+
+const migrationAddPlanConversations = `
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS conversations JSONB DEFAULT '[]';
 `

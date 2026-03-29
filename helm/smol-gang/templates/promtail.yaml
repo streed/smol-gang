@@ -1,0 +1,167 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-promtail-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+data:
+  promtail.yaml: |
+    server:
+      http_listen_port: 9080
+      grpc_listen_port: 0
+
+    positions:
+      filename: /tmp/positions.yaml
+
+    clients:
+      - url: http://{{ include "smol-gang.fullname" . }}-loki:3100/loki/api/v1/push
+
+    scrape_configs:
+      - job_name: kubernetes-pods
+        kubernetes_sd_configs:
+          - role: pod
+        relabel_configs:
+          # Only scrape pods in this namespace
+          - source_labels: [__meta_kubernetes_namespace]
+            regex: {{ .Release.Namespace }}
+            action: keep
+
+          # Map pod labels to Loki labels
+          - source_labels: [__meta_kubernetes_pod_label_app]
+            target_label: app
+          - source_labels: [__meta_kubernetes_pod_label_workstream_id]
+            target_label: workstream_id
+          - source_labels: [__meta_kubernetes_pod_label_repo_id]
+            target_label: repo_id
+          - source_labels: [__meta_kubernetes_pod_name]
+            target_label: pod_name
+          - source_labels: [__meta_kubernetes_pod_container_name]
+            target_label: container
+          - source_labels: [__meta_kubernetes_namespace]
+            target_label: namespace
+
+          # Set the log file path from the pod UID and container name
+          - source_labels: [__meta_kubernetes_pod_uid, __meta_kubernetes_pod_container_name]
+            target_label: __path__
+            separator: /
+            replacement: /var/log/pods/*$1/$2/*.log
+
+        pipeline_stages:
+          # Parse CRI log format
+          - cri: {}
+
+          # For agent pods, extract structured fields from log lines if present
+          - match:
+              selector: '{app="smol-agent"}'
+              stages:
+                - regex:
+                    expression: '.*"workstream_id":"(?P<ws_id>[^"]+)".*'
+                - labels:
+                    workstream_id: ws_id
+
+          # Drop empty lines
+          - match:
+              selector: '{app=~".+"}'
+              stages:
+                - drop:
+                    expression: "^\\s*$"
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-promtail
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+spec:
+  selector:
+    matchLabels:
+      {{- include "smol-gang.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: promtail
+  template:
+    metadata:
+      labels:
+        {{- include "smol-gang.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: promtail
+      annotations:
+        checksum/config: {{ toYaml .Values.observability | sha256sum }}
+    spec:
+      serviceAccountName: {{ include "smol-gang.fullname" . }}-promtail
+      containers:
+        - name: promtail
+          image: grafana/promtail:2.9.0
+          args:
+            - "-config.file=/etc/promtail/promtail.yaml"
+          ports:
+            - name: http
+              containerPort: 9080
+              protocol: TCP
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail
+            - name: pods-logs
+              mountPath: /var/log/pods
+              readOnly: true
+            - name: docker-logs
+              mountPath: /var/lib/docker/containers
+              readOnly: true
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "smol-gang.fullname" . }}-promtail-config
+        - name: pods-logs
+          hostPath:
+            path: /var/log/pods
+        - name: docker-logs
+          hostPath:
+            path: /var/lib/docker/containers
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-promtail
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-promtail
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+rules:
+  - apiGroups: [""]
+    resources: ["nodes", "nodes/proxy", "services", "endpoints", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-promtail
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: promtail
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "smol-gang.fullname" . }}-promtail
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "smol-gang.fullname" . }}-promtail
+    namespace: {{ .Release.Namespace }}

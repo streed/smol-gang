@@ -30,6 +30,10 @@ export default function useWebSocket(workstreamId: string): UseWebSocketReturn {
     ws.onmessage = (event) => {
       try {
         const msg: Message = JSON.parse(event.data);
+        // Ensure created_at is set for real-time messages
+        if (!msg.created_at) {
+          msg.created_at = new Date().toISOString();
+        }
         setMessages((prev) => [...prev, msg]);
       } catch {
         // ignore non-JSON messages

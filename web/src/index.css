@@ -106,3 +106,29 @@
     );
   }
 }
+
+/* React Flow customizations */
+.react-flow__node {
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__controls button {
+  background: #1a1a2e !important;
+  color: #00f0ff !important;
+  border-color: #2a2a3e !important;
+}
+
+.react-flow__controls button:hover {
+  background: #22223a !important;
+}
+
+.react-flow__minimap {
+  background: #0a0a0f !important;
+}

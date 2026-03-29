@@ -60,7 +60,7 @@ kind-load: build ## Build and load images into Kind
 	kind load docker-image smol-gang/agent:latest-apprunner --name smol-gang
 
 helm-install: ## Install Helm chart to Kind cluster
-	helm upgrade --install smol-gang ./helm/smol-cluster \
+	helm upgrade --install smol-gang ./helm/smol-gang \
 		--namespace smol-gang --create-namespace \
 		--set gateway.image.repository=smol-gang/gateway \
 		--set gateway.image.tag=latest \

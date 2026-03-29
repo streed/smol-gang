@@ -9,6 +9,12 @@ CMD ["npm", "run", "dev", "--", "--host"]
 
 # Build stage
 FROM dev AS build
+ARG VITE_API_URL=http://localhost:8080/api/v1
+ARG VITE_WS_URL=ws://localhost:8080
+ARG VITE_GITHUB_CLIENT_ID=
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+ENV VITE_GITHUB_CLIENT_ID=$VITE_GITHUB_CLIENT_ID
 RUN npm run build
 
 # Production stage

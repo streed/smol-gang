@@ -1,10 +1,10 @@
 import { useEffect, useState, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus } from 'lucide-react';
-import { repos as reposApi } from '../api/endpoints';
+import { Plus, Github } from 'lucide-react';
+import { repos as reposApi, github as githubApi } from '../api/endpoints';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
-import type { Repository } from '../types';
+import type { Repository, GitHubRepo } from '../types';
 import toast from 'react-hot-toast';
 
 export default function RepositoriesPage() {
@@ -21,6 +21,11 @@ export default function RepositoriesPage() {
     default_branch: 'main',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showGitHubModal, setShowGitHubModal] = useState(false);
+  const [ghRepos, setGhRepos] = useState<GitHubRepo[]>([]);
+  const [ghLoading, setGhLoading] = useState(false);
+  const [ghError, setGhError] = useState('');
+  const [importing, setImporting] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchRepos = async (p: number) => {
@@ -34,6 +39,38 @@ export default function RepositoriesPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const fetchGitHubRepos = async () => {
+    setGhLoading(true);
+    setGhError('');
+    try {
+      const res = await githubApi.listRepos();
+      setGhRepos(res.data || []);
+    } catch {
+      setGhError('Failed to load GitHub repos. Make sure your GitHub account is linked.');
+    } finally {
+      setGhLoading(false);
+    }
+  };
+
+  const handleImport = async (repo: GitHubRepo) => {
+    setImporting(repo.full_name);
+    try {
+      await githubApi.importRepo(repo.owner, repo.name);
+      toast.success(`Imported ${repo.full_name}`);
+      fetchRepos(page);
+      setShowGitHubModal(false);
+    } catch {
+      toast.error(`Failed to import ${repo.full_name}`);
+    } finally {
+      setImporting(null);
+    }
+  };
+
+  const openGitHubModal = () => {
+    setShowGitHubModal(true);
+    fetchGitHubRepos();
   };
 
   useEffect(() => {
@@ -66,13 +103,22 @@ export default function RepositoriesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-display font-bold text-gray-100 uppercase tracking-wider">Repositories</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="btn-neon-cyan flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Link Repository
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openGitHubModal}
+            className="btn-cyber flex items-center gap-2 border border-cyber-border text-gray-300 hover:border-gray-500 hover:text-white"
+          >
+            <Github className="h-4 w-4" />
+            Import from GitHub
+          </button>
+          <button
+            onClick={() => setShowModal(true)}
+            className="btn-neon-cyan flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Link Repository
+          </button>
+        </div>
       </div>
 
       <div className="bg-cyber-card border border-cyber-border rounded-lg">
@@ -247,6 +293,55 @@ export default function RepositoriesPage() {
             </button>
           </div>
         </form>
+      </Modal>
+
+      {/* Import from GitHub Modal */}
+      <Modal
+        open={showGitHubModal}
+        onClose={() => setShowGitHubModal(false)}
+        title="Import from GitHub"
+      >
+        <div className="max-h-96 overflow-y-auto">
+          {ghLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-neon-cyan" />
+            </div>
+          ) : ghError ? (
+            <p className="text-neon-red text-sm font-mono py-4">{ghError}</p>
+          ) : ghRepos.length === 0 ? (
+            <p className="text-gray-500 text-sm font-mono py-4">No repositories found.</p>
+          ) : (
+            <div className="space-y-2">
+              {ghRepos.map((repo) => (
+                <div
+                  key={repo.full_name}
+                  className="flex items-center justify-between p-3 border border-cyber-border rounded-lg hover:border-gray-600 transition-colors"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-gray-300 truncate">
+                      {repo.full_name}
+                    </p>
+                    {repo.description && repo.description !== 'null' && (
+                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                        {repo.description}
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-600 mt-0.5">
+                      {repo.default_branch} {repo.private ? '(private)' : ''}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleImport(repo)}
+                    disabled={importing === repo.full_name}
+                    className="btn-neon-cyan text-xs ml-3 flex-shrink-0"
+                  >
+                    {importing === repo.full_name ? 'Importing...' : 'Import'}
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );

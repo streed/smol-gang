@@ -43,7 +43,7 @@ create_cluster() {
     fi
 
     info "Creating Kind cluster '${CLUSTER_NAME}'..."
-    kind create cluster --config "${SCRIPT_DIR}/kind-config.yaml" --wait 120s
+    kind create cluster --config "${SCRIPT_DIR}/kind-config.yaml" --image kindest/node:v1.33.1 --wait 180s
     info "Kind cluster created successfully."
 }
 
@@ -115,11 +115,11 @@ build_and_load_images() {
 # Apply RBAC manifests
 # ------------------------------------------------------------------
 apply_rbac() {
-    local rbac_file="${PROJECT_DIR}/helm/smol-cluster/templates/rbac.yaml"
+    local rbac_file="${PROJECT_DIR}/helm/smol-gang/templates/rbac.yaml"
     if [[ -f "$rbac_file" ]]; then
         info "Applying RBAC manifests..."
         # Use helm template to render, then apply
-        helm template smol-gang "${PROJECT_DIR}/helm/smol-cluster" \
+        helm template smol-gang "${PROJECT_DIR}/helm/smol-gang" \
             --namespace smol-gang \
             --show-only templates/rbac.yaml | kubectl apply -f - 2>/dev/null || \
         warn "Could not apply RBAC via helm template. You may need to run 'make helm-install' instead."

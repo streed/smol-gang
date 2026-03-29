@@ -16,10 +16,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/streed/smol-cluster/gateway/internal/config"
-	"github.com/streed/smol-cluster/gateway/internal/db"
-	"github.com/streed/smol-cluster/gateway/internal/models"
-	"github.com/streed/smol-cluster/gateway/internal/ws"
+	"github.com/streed/smol-gang/gateway/internal/config"
+	"github.com/streed/smol-gang/gateway/internal/db"
+	"github.com/streed/smol-gang/gateway/internal/models"
+	"github.com/streed/smol-gang/gateway/internal/ws"
 )
 
 // Bot is the interface for the Slack integration
@@ -650,7 +650,7 @@ func buildHelpResponse() SlashCommandResponse {
 		Blocks: []Block{
 			{
 				Type: "header",
-				Text: &TextObject{Type: "plain_text", Text: "smol-cluster Commands"},
+				Text: &TextObject{Type: "plain_text", Text: "smol-gang Commands"},
 			},
 			{Type: "divider"},
 			{

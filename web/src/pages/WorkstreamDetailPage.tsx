@@ -1,12 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
   GitBranch,
   ExternalLink,
   CheckCircle,
   XCircle,
-  ChevronDown,
-  ChevronUp,
   Globe,
 } from 'lucide-react';
 import { workstreams as wsApi, repos as reposApi } from '../api/endpoints';
@@ -20,13 +18,14 @@ export default function WorkstreamDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [workstream, setWorkstream] = useState<Workstream | null>(null);
   const [repo, setRepo] = useState<Repository | null>(null);
-  const [logs, setLogs] = useState('');
-  const [showLogs, setShowLogs] = useState(false);
   const [ports, setPorts] = useState<
     Array<{ name: string; url: string; port: number }>
   >([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'agent-terminal'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'agent-logs' | 'changes'>('chat');
+  const [agentLogs, setAgentLogs] = useState('');
+  const [diffData, setDiffData] = useState<{ stat: string; diff: string }>({ stat: '', diff: '' });
+  const agentLogsRef = useRef<HTMLPreElement>(null);
 
   const fetchData = async () => {
     if (!id) return;
@@ -54,16 +53,45 @@ export default function WorkstreamDetailPage() {
     fetchData();
   }, [id]);
 
-  const handleFetchLogs = async () => {
-    if (!id) return;
-    try {
-      const res = await wsApi.getLogs(id);
-      setLogs(res.data.logs || 'No logs available.');
-    } catch {
-      setLogs('Failed to fetch logs.');
-    }
-    setShowLogs(!showLogs);
-  };
+  // Poll agent logs when the Agent Logs tab is active
+  useEffect(() => {
+    if (activeTab !== 'agent-logs' || !id) return;
+    let cancelled = false;
+
+    const fetchAgentLogs = async () => {
+      try {
+        const res = await wsApi.getLogs(id, 'agent');
+        if (!cancelled) {
+          setAgentLogs(res.data.logs || 'No logs available.');
+          // Auto-scroll to bottom
+          if (agentLogsRef.current) {
+            agentLogsRef.current.scrollTop = agentLogsRef.current.scrollHeight;
+          }
+        }
+      } catch {
+        if (!cancelled) setAgentLogs('Failed to fetch agent logs.');
+      }
+    };
+
+    fetchAgentLogs();
+    const interval = setInterval(fetchAgentLogs, 5000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activeTab, id]);
+
+  // Poll diff when the Changes tab is active
+  useEffect(() => {
+    if (activeTab !== 'changes' || !id) return;
+    let cancelled = false;
+    const fetchDiff = async () => {
+      try {
+        const res = await wsApi.getDiff(id);
+        if (!cancelled) setDiffData(res.data);
+      } catch { /* ignore */ }
+    };
+    fetchDiff();
+    const interval = setInterval(fetchDiff, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [activeTab, id]);
 
   const handleComplete = async () => {
     if (!id) return;
@@ -172,20 +200,65 @@ export default function WorkstreamDetailPage() {
               Terminal (App)
             </button>
             <button
-              onClick={() => setActiveTab('agent-terminal')}
+              onClick={() => setActiveTab('agent-logs')}
               className={`px-4 py-2 text-sm font-medium border-b-2 ${
-                activeTab === 'agent-terminal'
+                activeTab === 'agent-logs'
                   ? 'border-neon-cyan text-neon-cyan'
                   : 'border-transparent text-gray-500 hover:text-gray-300'
               }`}
             >
-              Terminal (Agent)
+              Agent Logs
+            </button>
+            <button
+              onClick={() => setActiveTab('changes')}
+              className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                activeTab === 'changes'
+                  ? 'border-neon-cyan text-neon-cyan'
+                  : 'border-transparent text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Changes
             </button>
           </div>
           <div className="flex-1 min-h-0">
             {activeTab === 'chat' && <ChatInterface workstreamId={id} />}
             {activeTab === 'terminal' && <Terminal workstreamId={id!} container="app" />}
-            {activeTab === 'agent-terminal' && <Terminal workstreamId={id!} container="agent" />}
+            {activeTab === 'agent-logs' && (
+              <div className="h-full bg-cyber-card border border-cyber-border rounded-b-lg overflow-auto p-4">
+                <pre
+                  ref={agentLogsRef}
+                  className="text-xs text-green-400 font-mono whitespace-pre-wrap"
+                >
+                  {agentLogs || 'Loading agent logs...'}
+                </pre>
+              </div>
+            )}
+            {activeTab === 'changes' && (
+              <div className="h-full bg-cyber-card border border-cyber-border rounded-b-lg overflow-auto">
+                {diffData.stat && (
+                  <div className="border-b border-cyber-border px-4 py-3">
+                    <pre className="text-xs text-gray-400 font-mono">{diffData.stat}</pre>
+                  </div>
+                )}
+                <div className="p-4">
+                  {diffData.diff ? (
+                    <pre className="text-xs font-mono leading-5">
+                      {diffData.diff.split('\n').map((line, i) => {
+                        let cls = 'text-gray-400';
+                        if (line.startsWith('+') && !line.startsWith('+++')) cls = 'text-green-400 bg-green-400/10';
+                        else if (line.startsWith('-') && !line.startsWith('---')) cls = 'text-red-400 bg-red-400/10';
+                        else if (line.startsWith('@@')) cls = 'text-purple-400 bg-purple-400/5';
+                        else if (line.startsWith('diff --git')) cls = 'text-neon-cyan font-bold mt-4 border-t border-cyber-border pt-2';
+                        else if (line.startsWith('---') || line.startsWith('+++')) cls = 'text-gray-500';
+                        return <div key={i} className={`px-2 ${cls}`}>{line || ' '}</div>;
+                      })}
+                    </pre>
+                  ) : (
+                    <p className="text-gray-500 text-sm text-center py-8">No changes detected.</p>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -263,28 +336,6 @@ export default function WorkstreamDetailPage() {
               </div>
             </div>
           )}
-
-          {/* Pod Logs */}
-          <div className="bg-cyber-bg border border-cyber-border rounded-lg">
-            <button
-              onClick={handleFetchLogs}
-              className="w-full flex items-center justify-between px-6 py-4 text-sm font-mono font-semibold text-gray-300 hover:bg-cyber-hover transition-colors rounded-lg"
-            >
-              Pod Logs
-              {showLogs ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </button>
-            {showLogs && (
-              <div className="px-6 pb-4">
-                <pre className="bg-cyber-bg text-green-400 text-xs p-4 rounded-lg overflow-x-auto max-h-64 overflow-y-auto font-mono border border-cyber-border">
-                  {logs || 'Loading...'}
-                </pre>
-              </div>
-            )}
-          </div>
 
           {/* Details */}
           <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">

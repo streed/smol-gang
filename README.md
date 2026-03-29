@@ -39,8 +39,8 @@ Each workstream runs as a 3-container Kubernetes pod:
 ### 1. Clone and configure
 
 ```bash
-git clone https://github.com/streed/smol-cluster-.git
-cd smol-cluster-
+git clone https://github.com/streed/smol-gang-.git
+cd smol-gang-
 cp .env.example .env
 ```
 
@@ -237,9 +237,9 @@ Available slash commands:
 For production-like deployments:
 
 ```bash
-helm upgrade --install smol-gang ./helm/smol-cluster \
+helm upgrade --install smol-gang ./helm/smol-gang \
   --namespace smol-gang --create-namespace \
-  -f helm/smol-cluster/values.yaml \
+  -f helm/smol-gang/values.yaml \
   --set secrets.jwtSecret="your-secret" \
   --set secrets.databasePassword="your-password"
 ```
@@ -249,7 +249,7 @@ The chart includes: gateway, PostgreSQL (embedded or external), RBAC, ingress, n
 ## Project Structure
 
 ```
-smol-cluster-/
+smol-gang-/
 ├── agent/                    # Agent container
 │   ├── Dockerfile           # Agent image (smolagent + bridge)
 │   ├── Dockerfile.apprunner # App runner sidecar image
@@ -264,7 +264,7 @@ smol-cluster-/
 │       ├── hooks/           # useWebSocket
 │       ├── store/           # Zustand auth store
 │       └── api/             # Axios endpoints
-├── helm/smol-cluster/        # Helm chart (smol-gang)
+├── helm/smol-gang/        # Helm chart (smol-gang)
 ├── observability/            # Prometheus/Loki/Grafana docker-compose
 ├── scripts/                  # Dev setup, Kind config, seed data
 ├── docker-compose.yml        # Local development services

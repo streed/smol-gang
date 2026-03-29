@@ -6,15 +6,17 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/streed/smol-cluster/gateway/internal/config"
-	"github.com/streed/smol-cluster/gateway/internal/db"
-	"github.com/streed/smol-cluster/gateway/internal/k8s"
-	"github.com/streed/smol-cluster/gateway/internal/middleware"
-	"github.com/streed/smol-cluster/gateway/internal/models"
-	"github.com/streed/smol-cluster/gateway/internal/ws"
+	"github.com/streed/smol-gang/gateway/internal/auth"
+	"github.com/streed/smol-gang/gateway/internal/config"
+	"github.com/streed/smol-gang/gateway/internal/db"
+	"github.com/streed/smol-gang/gateway/internal/k8s"
+	"github.com/streed/smol-gang/gateway/internal/middleware"
+	"github.com/streed/smol-gang/gateway/internal/models"
+	"github.com/streed/smol-gang/gateway/internal/ws"
 )
 
 type WorkstreamHandler struct {
@@ -44,8 +46,12 @@ func (h *WorkstreamHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	claims := middleware.GetUserFromContext(r.Context())
 
-	// Generate branch name from workstream name
-	branchName := fmt.Sprintf("smol/%s", sanitizeBranchName(req.Name))
+	// Use provided branch name or generate a new one
+	branchName := req.BranchName
+	if branchName == "" {
+		shortID := uuid.New().String()[:8]
+		branchName = fmt.Sprintf("smol/%s-%s", sanitizeBranchName(req.Name), shortID)
+	}
 
 	// Merge port mappings: repo config defaults + request overrides
 	portMappings := req.PortMappings
@@ -53,15 +59,9 @@ func (h *WorkstreamHandler) Create(w http.ResponseWriter, r *http.Request) {
 		portMappings = repo.Config.PortMappings
 	}
 
-	// Merge LLM config: request override > repo default > global default
+	// LLM config: only store if explicitly provided in request
+	// Pod template handles defaults (in-cluster Ollama, global config)
 	llmConfig := req.LLMConfig
-	if llmConfig == nil {
-		llmConfig = &models.LLMConfig{
-			APIURL: h.Config.LLMApiURL,
-			APIKey: h.Config.LLMApiKey,
-			Model:  h.Config.LLMModel,
-		}
-	}
 
 	workstream, err := h.Queries.CreateWorkstream(r.Context(), models.Workstream{
 		Name:         req.Name,
@@ -78,6 +78,13 @@ func (h *WorkstreamHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch user's GitHub token for repo cloning
+	user, _ := h.Queries.GetUserByID(r.Context(), claims.UserID)
+	gitToken := user.GitHubAccessToken
+
+	// Generate a long-lived gateway token for the agent to call back
+	gatewayToken, _ := auth.GenerateToken(claims.UserID, claims.Email, claims.Role, h.Config.JWTSecret, 7*24*time.Hour)
+
 	// Provision K8s pod asynchronously (use background context since request will end)
 	go func() {
 		bgCtx := context.Background()
@@ -92,7 +99,12 @@ func (h *WorkstreamHandler) Create(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		podName, serviceName, provErr := h.K8s.CreateAgentPod(bgCtx, workstream, repo)
+		extraEnv := map[string]string{
+			"GIT_TOKEN":     gitToken,
+			"GATEWAY_TOKEN": gatewayToken,
+		}
+
+		podName, serviceName, provErr := h.K8s.CreateAgentPod(bgCtx, workstream, repo, extraEnv)
 		if provErr != nil {
 			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, workstream.ID, "failed")
 			h.Hub.BroadcastToWorkstream(workstream.ID.String(), ws.Message{
@@ -185,7 +197,7 @@ func (h *WorkstreamHandler) SendMessage(w http.ResponseWriter, r *http.Request) 
 	// Forward message to agent pod
 	workstream, err := h.Queries.GetWorkstreamByID(r.Context(), id)
 	if err == nil && workstream.PodName != "" && h.K8s != nil {
-		go h.K8s.SendMessageToAgent(context.Background(), workstream.ServiceName, req.Content)
+		go h.K8s.SendMessageToAgent(context.Background(), workstream.PodName, req.Content)
 	}
 
 	// Broadcast to WebSocket clients
@@ -301,6 +313,24 @@ func (h *WorkstreamHandler) Cancel(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "cancelled"})
 }
 
+func (h *WorkstreamHandler) Delete(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid workstream ID"})
+		return
+	}
+
+	// Delete associated messages first
+	h.Queries.DeleteWorkstreamMessages(r.Context(), id)
+
+	if err := h.Queries.DeleteWorkstream(r.Context(), id); err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to delete workstream"})
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (h *WorkstreamHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
 	id, err := uuid.Parse(chi.URLParam(r, "id"))
 	if err != nil {
@@ -319,7 +349,8 @@ func (h *WorkstreamHandler) GetLogs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	logs, err := h.K8s.GetPodLogs(r.Context(), workstream.PodName)
+	container := r.URL.Query().Get("container")
+	logs, err := h.K8s.GetPodLogs(r.Context(), workstream.PodName, container)
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to get pod logs"})
 		return
@@ -456,6 +487,35 @@ func (h *WorkstreamHandler) Terminal(w http.ResponseWriter, r *http.Request) {
 		// WebSocket already upgraded, can't send HTTP error
 		return
 	}
+}
+
+func (h *WorkstreamHandler) GetDiff(w http.ResponseWriter, r *http.Request) {
+	id, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid workstream ID"})
+		return
+	}
+
+	workstream, err := h.Queries.GetWorkstreamByID(r.Context(), id)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, models.ErrorResponse{Error: "workstream not found"})
+		return
+	}
+
+	if workstream.PodName == "" || h.K8s == nil {
+		writeJSON(w, http.StatusOK, map[string]string{"stat": "", "diff": ""})
+		return
+	}
+
+	respBody, err := h.K8s.ProxyGet(r.Context(), workstream.PodName, "diff")
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]string{"stat": "", "diff": ""})
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	w.Write(respBody)
 }
 
 func sanitizeBranchName(name string) string {

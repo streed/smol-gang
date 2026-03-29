@@ -19,8 +19,7 @@ export default function RepositoryDetailPage() {
   const [showModal, setShowModal] = useState(false);
   const [wsForm, setWsForm] = useState({
     name: '',
-    description: '',
-    branch_name: '',
+    prompt: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -50,12 +49,14 @@ export default function RepositoryDetailPage() {
     try {
       const res = await wsApi.createWorkstream({
         ...wsForm,
+        description: wsForm.prompt,
         repository_id: id,
       });
       toast.success('Workstream created');
       navigate(`/workstreams/${res.data.id}`);
-    } catch {
-      toast.error('Failed to create workstream');
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error || 'Failed to create workstream';
+      toast.error(msg);
     } finally {
       setSubmitting(false);
     }
@@ -132,7 +133,44 @@ export default function RepositoryDetailPage() {
             Configuration
           </h2>
           {repo.config ? (
-            <dl className="space-y-3">
+            <div className="space-y-4">
+              {repo.config.environment && (
+                <div>
+                  <dt className="text-sm font-mono text-gray-500 mb-1">Environment</dt>
+                  <dd>
+                    <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30">
+                      {repo.config.environment}
+                    </span>
+                  </dd>
+                </div>
+              )}
+              {repo.config.services && repo.config.services.length > 0 && (
+                <div>
+                  <dt className="text-sm font-mono text-gray-500 mb-1">Services</dt>
+                  <dd className="space-y-1">
+                    {repo.config.services.map((s: { name: string; command: string; port: number }, i: number) => (
+                      <div key={i} className="flex items-center justify-between bg-cyber-surface rounded px-3 py-1.5 text-xs">
+                        <span className="text-gray-300 font-mono font-medium">{s.name}</span>
+                        <span className="text-gray-500 font-mono">{s.command}</span>
+                        <span className="text-neon-green font-mono">:{s.port}</span>
+                      </div>
+                    ))}
+                  </dd>
+                </div>
+              )}
+              {repo.config.compose?.enabled && (
+                <div>
+                  <dt className="text-sm font-mono text-gray-500 mb-1">Docker Compose</dt>
+                  <dd className="text-sm text-gray-300 font-mono">
+                    {repo.config.compose.file || 'docker-compose.yml'}
+                    {repo.config.compose.ports?.map((p: { service: string; port: number }, i: number) => (
+                      <span key={i} className="ml-2 text-neon-green">
+                        {p.service}:{p.port}
+                      </span>
+                    ))}
+                  </dd>
+                </div>
+              )}
               {repo.config.setup_commands && repo.config.setup_commands.length > 0 && (
                 <div>
                   <dt className="text-sm font-mono text-gray-500 mb-1">Setup Commands</dt>
@@ -149,7 +187,7 @@ export default function RepositoryDetailPage() {
                   </dd>
                 </div>
               )}
-            </dl>
+            </div>
           ) : (
             <p className="text-sm text-gray-500">No configuration set.</p>
           )}
@@ -267,30 +305,17 @@ export default function RepositoryDetailPage() {
           </div>
           <div>
             <label className="block text-sm font-mono text-gray-400 mb-1">
-              Description
+              Prompt
             </label>
             <textarea
-              value={wsForm.description}
+              value={wsForm.prompt}
               onChange={(e) =>
-                setWsForm({ ...wsForm, description: e.target.value })
+                setWsForm({ ...wsForm, prompt: e.target.value })
               }
-              rows={3}
+              required
+              rows={4}
               className="input-cyber w-full"
-              placeholder="Describe what this workstream should accomplish..."
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-mono text-gray-400 mb-1">
-              Branch Name
-            </label>
-            <input
-              type="text"
-              value={wsForm.branch_name}
-              onChange={(e) =>
-                setWsForm({ ...wsForm, branch_name: e.target.value })
-              }
-              className="input-cyber w-full"
-              placeholder="feature/fix-login-bug"
+              placeholder="Tell the agent what to do..."
             />
           </div>
           <div className="flex justify-end gap-3 pt-2">

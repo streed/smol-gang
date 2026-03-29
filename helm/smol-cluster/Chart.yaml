@@ -1,6 +1,0 @@
-apiVersion: v2
-name: smol-gang
-description: Kubernetes orchestration for parallel smolagent workstreams
-type: application
-version: 0.1.0
-appVersion: "0.1.0"

@@ -1,6 +1,0 @@
-apiVersion: v1
-kind: Namespace
-metadata:
-  name: {{ include "smol-gang.namespace" . }}
-  labels:
-    {{- include "smol-gang.labels" . | nindent 4 }}

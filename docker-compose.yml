@@ -21,42 +21,42 @@ services:
     build:
       context: ./gateway
       dockerfile: Dockerfile
-    ports:
-      - "8080:8080"
+    network_mode: host
     environment:
-      DATABASE_URL: "postgres://smol:smol_dev_password@postgres:5432/smol_cluster?sslmode=disable"
+      DATABASE_URL: "postgres://smol:smol_dev_password@localhost:5432/smol_cluster?sslmode=disable"
       PORT: "8080"
       JWT_SECRET: "dev-jwt-secret-change-in-production"
       K8S_NAMESPACE: "smol-gang"
       K8S_IN_CLUSTER: "false"
-      LLM_API_URL: "${LLM_API_URL:-http://host.docker.internal:11434/v1}"
+      LLM_API_URL: "${LLM_API_URL:-http://localhost:11434/v1}"
       LLM_API_KEY: "${LLM_API_KEY:-}"
       LLM_MODEL: "${LLM_MODEL:-llama3}"
+      LLM_PROVIDER: "${LLM_PROVIDER:-ollama-api}"
+      GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
+      GITHUB_CLIENT_SECRET: "${GITHUB_CLIENT_SECRET:-}"
+      GITHUB_WEBHOOK_SECRET: "${GITHUB_WEBHOOK_SECRET:-}"
+      FRONTEND_URL: "http://localhost:3000"
       AGENT_IMAGE: "smol-gang/agent:latest"
       LOG_LEVEL: "debug"
-      ADMIN_EMAIL: "admin@localhost"
-      ADMIN_PASSWORD: "admin"
     depends_on:
       postgres:
         condition: service_healthy
     volumes:
       - "${HOME}/.kube:/root/.kube:ro"
+      - "${HOME}/.minikube:/home/reed/.minikube:ro"
     restart: unless-stopped
 
   web:
     build:
       context: ./web
       dockerfile: Dockerfile
-      target: dev
+      target: prod
+      args:
+        VITE_API_URL: "http://localhost:8080/api/v1"
+        VITE_WS_URL: "ws://localhost:8080"
+        VITE_GITHUB_CLIENT_ID: "${GITHUB_CLIENT_ID:-}"
     ports:
-      - "3000:3000"
-    environment:
-      VITE_API_URL: "http://localhost:8080"
-      VITE_WS_URL: "ws://localhost:8080"
-    volumes:
-      - ./web/src:/app/src
-      - ./web/public:/app/public
-      - ./web/index.html:/app/index.html
+      - "3000:80"
     depends_on:
       - gateway
 

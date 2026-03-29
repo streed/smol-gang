@@ -122,7 +122,7 @@ install_helm_chart() {
     local host_ip
     host_ip=$(docker network inspect bridge --format '{{range .IPAM.Config}}{{.Gateway}}{{end}}' 2>/dev/null || echo "172.17.0.1")
 
-    helm upgrade --install smol-gang "${PROJECT_DIR}/helm/smol-cluster" \
+    helm upgrade --install smol-gang "${PROJECT_DIR}/helm/smol-gang" \
         --namespace smol-gang \
         --create-namespace \
         --set gateway.image.repository=smol-gang/gateway \

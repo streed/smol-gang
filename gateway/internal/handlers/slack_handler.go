@@ -5,9 +5,9 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/streed/smol-cluster/gateway/internal/config"
-	"github.com/streed/smol-cluster/gateway/internal/db"
-	"github.com/streed/smol-cluster/gateway/internal/slack"
+	"github.com/streed/smol-gang/gateway/internal/config"
+	"github.com/streed/smol-gang/gateway/internal/db"
+	"github.com/streed/smol-gang/gateway/internal/slack"
 )
 
 type SlackHandler struct {

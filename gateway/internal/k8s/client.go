@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 	"os"
 
 	corev1 "k8s.io/api/core/v1"
@@ -15,14 +14,19 @@ import (
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
 
-	"github.com/streed/smol-cluster/gateway/internal/config"
-	"github.com/streed/smol-cluster/gateway/internal/models"
+	"github.com/streed/smol-gang/gateway/internal/config"
+	"github.com/streed/smol-gang/gateway/internal/models"
 )
 
 type Client struct {
 	clientset *kubernetes.Clientset
 	namespace string
 	config    *config.Config
+}
+
+// Clientset returns the underlying kubernetes clientset for direct API access.
+func (c *Client) Clientset() kubernetes.Interface {
+	return c.clientset
 }
 
 func NewClient(cfg *config.Config) (*Client, error) {
@@ -42,6 +46,11 @@ func NewClient(cfg *config.Config) (*Client, error) {
 		return nil, fmt.Errorf("failed to create k8s config: %w", err)
 	}
 
+	// Allow overriding the API server host (e.g. when running in Docker alongside Kind)
+	if override := os.Getenv("K8S_API_SERVER"); override != "" {
+		restConfig.Host = override
+	}
+
 	clientset, err := kubernetes.NewForConfig(restConfig)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create k8s clientset: %w", err)
@@ -54,11 +63,11 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	}, nil
 }
 
-func (c *Client) CreateAgentPod(ctx context.Context, ws models.Workstream, repo models.Repository) (podName, serviceName string, err error) {
+func (c *Client) CreateAgentPod(ctx context.Context, ws models.Workstream, repo models.Repository, extraEnv map[string]string) (podName, serviceName string, err error) {
 	podName = fmt.Sprintf("smol-agent-%s", ws.ID.String()[:8])
 	serviceName = fmt.Sprintf("smol-svc-%s", ws.ID.String()[:8])
 
-	pod := BuildPodSpec(podName, ws, repo, c.config)
+	pod := BuildPodSpec(podName, ws, repo, c.config, extraEnv)
 
 	_, err = c.clientset.CoreV1().Pods(c.namespace).Create(ctx, pod, metav1.CreateOptions{})
 	if err != nil {
@@ -94,10 +103,13 @@ func (c *Client) GetPodStatus(ctx context.Context, podName string) (string, erro
 	return string(pod.Status.Phase), nil
 }
 
-func (c *Client) GetPodLogs(ctx context.Context, podName string) (string, error) {
+func (c *Client) GetPodLogs(ctx context.Context, podName string, container string) (string, error) {
+	if container == "" {
+		container = "agent"
+	}
 	tailLines := int64(500)
 	req := c.clientset.CoreV1().Pods(c.namespace).GetLogs(podName, &corev1.PodLogOptions{
-		Container: "agent",
+		Container: container,
 		TailLines: &tailLines,
 	})
 
@@ -129,31 +141,47 @@ func (c *Client) GetServiceEndpoints(ctx context.Context, serviceName string) (m
 	return endpoints, nil
 }
 
-func (c *Client) SendMessageToAgent(ctx context.Context, serviceName, content string) error {
-	url := fmt.Sprintf("http://%s.%s.svc.cluster.local:8022/message", serviceName, c.namespace)
+// proxyPost sends an HTTP POST to a pod via the K8s API server proxy.
+func (c *Client) proxyPost(ctx context.Context, podName, path string, reqBody []byte) ([]byte, error) {
+	// Build the proxy URL: /api/v1/namespaces/{ns}/pods/{pod}:{port}/proxy/{path}
+	proxyURL := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s:8022/proxy/%s", c.namespace, podName, path)
+
+	result := c.clientset.CoreV1().RESTClient().
+		Post().
+		AbsPath(proxyURL).
+		SetHeader("Content-Type", "application/json").
+		Body(reqBody).
+		Do(ctx)
+
+	return result.Raw()
+}
+
+func (c *Client) ProxyGet(ctx context.Context, podName, path string) ([]byte, error) {
+	proxyURL := fmt.Sprintf("/api/v1/namespaces/%s/pods/%s:8022/proxy/%s", c.namespace, podName, path)
+	result := c.clientset.CoreV1().RESTClient().
+		Get().
+		AbsPath(proxyURL).
+		Do(ctx)
+	return result.Raw()
+}
+
+func (c *Client) SendMessageToAgent(ctx context.Context, podName, content string) error {
 	body := fmt.Sprintf(`{"content":%q}`, content)
-	resp, err := http.Post(url, "application/json", bytes.NewBufferString(body))
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-	return nil
+	_, err := c.proxyPost(ctx, podName, "message", []byte(body))
+	return err
 }
 
 func (c *Client) CompleteWorkstream(ctx context.Context, ws models.Workstream) (string, error) {
-	url := fmt.Sprintf("http://%s.%s.svc.cluster.local:8022/complete", ws.ServiceName, c.namespace)
-	resp, err := http.Post(url, "application/json", bytes.NewBufferString("{}"))
+	respBody, err := c.proxyPost(ctx, ws.PodName, "complete", []byte("{}"))
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
 
 	var result struct {
 		PRURL string `json:"pull_request_url"`
 	}
-	body, err := io.ReadAll(resp.Body)
-	if err == nil && len(body) > 0 {
-		json.Unmarshal(body, &result)
+	if len(respBody) > 0 {
+		json.Unmarshal(respBody, &result)
 	}
 	return result.PRURL, nil
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, FormEvent } from 'react';
-import { Plus, Trash2, Pencil } from 'lucide-react';
-import { users as usersApi, auth as authApi } from '../api/endpoints';
+import { Trash2, Pencil } from 'lucide-react';
+import { users as usersApi } from '../api/endpoints';
 import Modal from '../components/Modal';
 import Pagination from '../components/Pagination';
 import type { User } from '../types';
@@ -12,14 +12,6 @@ export default function UsersPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  // Add user modal
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addForm, setAddForm] = useState({
-    email: '',
-    name: '',
-    password: '',
-    role: 'user',
-  });
   const [submitting, setSubmitting] = useState(false);
 
   // Edit user modal
@@ -47,27 +39,6 @@ export default function UsersPage() {
   useEffect(() => {
     fetchUsers(page);
   }, [page]);
-
-  const handleAddUser = async (e: FormEvent) => {
-    e.preventDefault();
-    setSubmitting(true);
-    try {
-      await authApi.register(
-        addForm.email,
-        addForm.password,
-        addForm.name,
-        addForm.role
-      );
-      toast.success('User created');
-      setShowAddModal(false);
-      setAddForm({ email: '', name: '', password: '', role: 'user' });
-      fetchUsers(page);
-    } catch {
-      toast.error('Failed to create user');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleEditUser = async (e: FormEvent) => {
     e.preventDefault();
@@ -113,13 +84,6 @@ export default function UsersPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-display font-bold text-gray-100 uppercase tracking-wider">Users</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="btn-neon-cyan flex items-center gap-2"
-        >
-          <Plus className="h-4 w-4" />
-          Add User
-        </button>
       </div>
 
       <div className="bg-cyber-card border border-cyber-border rounded-lg">
@@ -221,90 +185,6 @@ export default function UsersPage() {
           </div>
         )}
       </div>
-
-      {/* Add User Modal */}
-      <Modal
-        open={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        title="Add User"
-      >
-        <form onSubmit={handleAddUser} className="space-y-4">
-          <div>
-            <label className="block text-sm font-mono text-gray-400 mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              value={addForm.email}
-              onChange={(e) =>
-                setAddForm({ ...addForm, email: e.target.value })
-              }
-              required
-              className="input-cyber w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-mono text-gray-400 mb-1">
-              Name
-            </label>
-            <input
-              type="text"
-              value={addForm.name}
-              onChange={(e) =>
-                setAddForm({ ...addForm, name: e.target.value })
-              }
-              required
-              className="input-cyber w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-mono text-gray-400 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={addForm.password}
-              onChange={(e) =>
-                setAddForm({ ...addForm, password: e.target.value })
-              }
-              required
-              minLength={8}
-              className="input-cyber w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-mono text-gray-400 mb-1">
-              Role
-            </label>
-            <select
-              value={addForm.role}
-              onChange={(e) =>
-                setAddForm({ ...addForm, role: e.target.value })
-              }
-              className="input-cyber w-full"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div className="flex justify-end gap-3 pt-2">
-            <button
-              type="button"
-              onClick={() => setShowAddModal(false)}
-              className="btn-cyber text-gray-400 border-cyber-border hover:text-gray-200"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="btn-neon-cyan disabled:opacity-50"
-            >
-              {submitting ? 'Creating...' : 'Add User'}
-            </button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Edit User Modal */}
       <Modal

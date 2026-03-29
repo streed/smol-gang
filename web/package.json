@@ -10,12 +10,16 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "axios": "^1.7.2",
     "lucide-react": "^0.400.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-hot-toast": "^2.4.1",
+    "react-markdown": "^10.1.0",
     "react-router-dom": "^6.23.1",
+    "reactflow": "^11.11.4",
+    "remark-gfm": "^4.0.1",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

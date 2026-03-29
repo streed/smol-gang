@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"bufio"
 	"fmt"
+	"net"
 	"net/http"
 	"time"
 
-	"github.com/streed/smol-cluster/gateway/internal/metrics"
+	"github.com/streed/smol-gang/gateway/internal/metrics"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -33,6 +35,14 @@ func (sr *statusRecorder) Flush() {
 	if f, ok := sr.ResponseWriter.(http.Flusher); ok {
 		f.Flush()
 	}
+}
+
+// Hijack implements http.Hijacker for WebSocket support.
+func (sr *statusRecorder) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	if h, ok := sr.ResponseWriter.(http.Hijacker); ok {
+		return h.Hijack()
+	}
+	return nil, nil, fmt.Errorf("underlying ResponseWriter does not implement http.Hijacker")
 }
 
 // PrometheusMetrics returns a chi-compatible middleware that records HTTP

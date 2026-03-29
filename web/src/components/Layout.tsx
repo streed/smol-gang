@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   GitFork,
   Layers,
+  Network,
   Users,
   ScrollText,
   LogOut,
@@ -12,9 +13,11 @@ import {
 } from 'lucide-react';
 
 const navItems = [
+  { to: '/orchestrator', label: 'Orchestrator', icon: Network },
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/repositories', label: 'Repositories', icon: GitFork },
   { to: '/workstreams', label: 'Workstreams', icon: Layers },
+  { to: '/plans', label: 'Plans', icon: ScrollText },
 ];
 
 const adminItems = [

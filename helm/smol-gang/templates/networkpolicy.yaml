@@ -1,0 +1,95 @@
+{{- if .Values.networkPolicy.enabled | default true }}
+---
+# NetworkPolicy: Allow gateway to communicate with agent pods
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-gateway
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: gateway
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: gateway
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow inbound traffic from ingress controller and external
+    - {}
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow communication to agent pods
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: agent
+    # Allow communication to postgres (external or in-cluster)
+    - ports:
+        - port: 5432
+          protocol: TCP
+    # Allow communication to LLM APIs (external HTTPS)
+    - ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+        - port: 11434
+          protocol: TCP
+---
+# NetworkPolicy: Agent pods - allow gateway access and external egress, deny agent-to-agent
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "smol-gang.fullname" . }}-agent
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "smol-gang.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/component: agent
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Only allow inbound from gateway pods
+    - from:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+  egress:
+    # Allow DNS resolution
+    - ports:
+        - port: 53
+          protocol: UDP
+        - port: 53
+          protocol: TCP
+    # Allow access to GitHub (HTTPS)
+    - ports:
+        - port: 443
+          protocol: TCP
+        - port: 80
+          protocol: TCP
+    # Allow access to LLM APIs (including local Ollama)
+    - ports:
+        - port: 11434
+          protocol: TCP
+    # Allow communication back to gateway
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/component: gateway
+    # Deny agent-to-agent: since we only allow egress to specific ports
+    # and ingress only from gateway, agents cannot talk to each other.
+    # Explicit deny for agent-to-agent is achieved by the absence of a
+    # rule allowing traffic to pods with the agent label.
+{{- end }}

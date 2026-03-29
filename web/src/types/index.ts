@@ -3,6 +3,8 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  github_id?: number;
+  github_login?: string;
   created_at: string;
   updated_at: string;
 }
@@ -14,12 +16,32 @@ export interface PortMapping {
   description: string;
 }
 
+export interface ServiceDef {
+  name: string;
+  command: string;
+  port: number;
+}
+
+export interface ComposeDef {
+  enabled: boolean;
+  file?: string;
+  ports?: ComposePort[];
+}
+
+export interface ComposePort {
+  service: string;
+  port: number;
+}
+
 export interface RepoConfig {
   port_mappings: PortMapping[];
   setup_commands: string[];
   env_vars: Record<string, string>;
   agent_prompt: string;
   resource_limits: Record<string, string>;
+  environment?: string;
+  services?: ServiceDef[];
+  compose?: ComposeDef;
 }
 
 export interface Repository {
@@ -84,7 +106,72 @@ export interface PaginatedResponse<T> {
   per_page: number;
 }
 
+export interface GitHubRepo {
+  full_name: string;
+  name: string;
+  owner: string;
+  clone_url: string;
+  default_branch: string;
+  private: boolean;
+  description: string;
+}
+
 export interface LoginResponse {
   token: string;
   user: User;
+}
+
+// --- DAG Plan Types ---
+
+export interface Plan {
+  id: string;
+  prompt: string;
+  plan_json?: ExecutionPlan;
+  root_branch: string;
+  root_pr: number;
+  status: string;
+  repository_id: string;
+  base_branch: string;
+  complexity: string;
+  complexity_reasoning: string;
+  created_by_id: string;
+  conversations?: unknown[];
+  created_at: string;
+  updated_at: string;
+  tasks?: PlanTask[];
+}
+
+export interface PlanTask {
+  id: string;
+  plan_id: string;
+  description: string;
+  depends_on: string[];
+  file_scope: string[];
+  acceptance_criteria: string[];
+  model_tier: string;
+  status: string;
+  branch_name: string;
+  pr_number: number;
+  pr_url: string;
+  worker_id?: string;
+  workstream_id?: string;
+  error?: string;
+  wave: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExecutionPlan {
+  tasks: TaskNode[];
+  waves: string[][];
+  critical_path: string[];
+}
+
+export interface TaskNode {
+  id: string;
+  description: string;
+  depends_on: string[];
+  file_scope: string[];
+  acceptance_criteria: string[];
+  model_tier: string;
 }

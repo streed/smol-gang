@@ -6,7 +6,7 @@ interface AuthState {
   user: User | null;
   token: string | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  loginWithToken: (token: string) => Promise<void>;
   logout: () => void;
   initialize: () => void;
   isAuthenticated: () => boolean;
@@ -17,12 +17,19 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   token: null,
   loading: true,
 
-  login: async (email: string, password: string) => {
-    const response = await authApi.login(email, password);
-    const { token, user } = response.data;
+  loginWithToken: async (token: string) => {
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ token, user });
+    set({ token });
+    try {
+      const response = await authApi.getMe();
+      const user = response.data;
+      localStorage.setItem('user', JSON.stringify(user));
+      set({ user });
+    } catch {
+      localStorage.removeItem('token');
+      set({ token: null, user: null });
+      throw new Error('Failed to authenticate');
+    }
   },
 
   logout: () => {

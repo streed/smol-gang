@@ -12,21 +12,14 @@ echo "=== Running setup ==="
 if [ -f "$WORKSPACE/.smol-gang.yaml" ]; then
     echo "Found .smol-gang.yaml"
 
-    # Extract setup commands using python (available in the container)
-    python3 -c "
-import yaml
-import sys
-
-try:
-    with open('$WORKSPACE/.smol-gang.yaml') as f:
-        config = yaml.safe_load(f)
-
-    commands = config.get('setup_commands', [])
-    for cmd in commands:
-        print(cmd)
-except Exception as e:
-    print(f'Warning: failed to parse .smol-gang.yaml: {e}', file=sys.stderr)
-" | while IFS= read -r cmd; do
+    # Extract setup_commands entries using grep/sed (no Python needed)
+    # Supports simple YAML list format:
+    #   setup_commands:
+    #     - npm install
+    #     - npm run build
+    sed -n '/^setup_commands:/,/^[^ ]/{ /^  *- /p }' "$WORKSPACE/.smol-gang.yaml" \
+        | sed 's/^  *- //' \
+        | while IFS= read -r cmd; do
         echo "Running: $cmd"
         (cd "$WORKSPACE" && eval "$cmd") || echo "Warning: command failed: $cmd"
     done
