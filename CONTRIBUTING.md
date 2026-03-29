@@ -12,7 +12,7 @@ Thanks for your interest in contributing! This document covers how to get starte
 
 - **gateway/** — Go API server (Chi router, PostgreSQL, K8s client)
 - **web/** — React/TypeScript frontend (Vite, Tailwind CSS)
-- **agent/** — Agent container (smolagent + ACP bridge)
+- **agent/** — Agent container (smol-agent + ACP bridge)
 - **helm/** — Helm chart for Kubernetes deployment
 - **scripts/** — Development and setup scripts
 - **observability/** — Prometheus, Grafana, Loki stack

@@ -1,6 +1,6 @@
 # smol-gang
 
-A Kubernetes-based system that orchestrates multiple [smolagent](https://github.com/huggingface/smolagents) instances to work on features in parallel across one or many repositories.
+A Kubernetes-based system that orchestrates multiple [smol-agent](https://github.com/streed/smol-agent) instances to work on features in parallel across one or many repositories.
 
 smol-gang decomposes complex development tasks into a DAG of independent subtasks, executes them in parallel via LLM-powered agents running in Kubernetes pods, and uses GitHub Pull Requests as the primary coordination mechanism.
 
@@ -26,13 +26,13 @@ graph LR
 
     subgraph K8s["Kubernetes Cluster"]
         subgraph Pod1["Agent Pod"]
-            Agent1[smolagent]
+            Agent1[smol-agent]
             Bridge1[ACP Bridge]
             App1[App Runner]
             DinD1[Docker-in-Docker]
         end
         subgraph Pod2["Agent Pod"]
-            Agent2[smolagent]
+            Agent2[smol-agent]
             Bridge2[ACP Bridge]
             App2[App Runner]
             DinD2[Docker-in-Docker]
@@ -51,7 +51,7 @@ graph LR
 ```
 
 Each agent pod contains three containers:
-- **Agent** — [smolagent](https://github.com/huggingface/smolagents) connected via ACP (Agent Client Protocol) to a bridge server
+- **Agent** — [smol-agent](https://github.com/streed/smol-agent) connected via ACP (Agent Client Protocol) to a bridge server
 - **App Runner** — runs the application under development with port forwarding
 - **DinD** — Docker-in-Docker sidecar for builds and container operations
 
@@ -95,7 +95,7 @@ sequenceDiagram
     A->>A: Start ACP bridge
     A->>G: Report status: ready
     G->>A: Send prompt via bridge
-    A->>A: smolagent works on task
+    A->>A: smol-agent works on task
     A->>G: Stream progress updates
     A->>GH: Commit, push, open PR
     A->>G: Report completion
@@ -218,8 +218,8 @@ make build-agent
 ```
 
 Agent components:
-- `scripts/entrypoint.sh` — orchestrates clone, setup, smolagent startup, and bridge
-- `scripts/bridge.mjs` — ACP bridge between gateway and smolagent
+- `scripts/entrypoint.sh` — orchestrates clone, setup, smol-agent startup, and bridge
+- `scripts/bridge.mjs` — ACP bridge between gateway and smol-agent
 - `scripts/cleanup.sh` — commits, pushes, and reports final status
 - `scripts/setup.sh` — runs repo-specific setup commands
 - `scripts/app-entrypoint.sh` — starts the application container
@@ -289,7 +289,7 @@ The chart includes gateway, PostgreSQL, RBAC, ingress, network policies, and the
 ```
 smol-gang/
 ├── agent/                    # Agent container
-│   ├── Dockerfile           # Agent image (smolagent + ACP bridge)
+│   ├── Dockerfile           # Agent image (smol-agent + ACP bridge)
 │   ├── Dockerfile.apprunner # App runner sidecar image
 │   └── scripts/             # Entrypoint, bridge, cleanup scripts
 ├── gateway/                  # Go API server
