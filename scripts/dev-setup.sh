@@ -62,7 +62,7 @@ start_compose() {
     info "Waiting for postgres to be healthy..."
     local retries=30
     while [[ $retries -gt 0 ]]; do
-        if docker compose exec -T postgres pg_isready -U smol -d smol_cluster &>/dev/null; then
+        if docker compose exec -T postgres pg_isready -U smol -d smol_gang &>/dev/null; then
             info "Postgres is healthy."
             break
         fi
@@ -128,7 +128,7 @@ install_helm_chart() {
         --set gateway.image.repository=smol-gang/gateway \
         --set gateway.image.tag=latest \
         --set gateway.image.pullPolicy=Never \
-        --set gateway.env.DATABASE_URL="postgres://smol:smol_dev_password@${host_ip}:5432/smol_cluster?sslmode=disable" \
+        --set gateway.env.DATABASE_URL="postgres://smol:smol_dev_password@${host_ip}:5432/smol_gang?sslmode=disable" \
         --set gateway.env.K8S_IN_CLUSTER="true" \
         --set gateway.env.K8S_NAMESPACE="smol-gang" \
         --set gateway.env.LOG_LEVEL="debug"

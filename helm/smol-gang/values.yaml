@@ -35,8 +35,8 @@ postgresql:
     tag: "16-alpine"
     pullPolicy: IfNotPresent
   port: 5432
-  database: smol_cluster
-  username: smol_cluster
+  database: smol_gang
+  username: smol_gang
   # -- Password for embedded PostgreSQL (set via secret in production)
   password: ""
   persistence:

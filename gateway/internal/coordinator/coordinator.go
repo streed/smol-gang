@@ -17,6 +17,7 @@ import (
 	"github.com/streed/smol-gang/gateway/internal/config"
 	"github.com/streed/smol-gang/gateway/internal/db"
 	"github.com/streed/smol-gang/gateway/internal/k8s"
+	"github.com/streed/smol-gang/gateway/internal/llm"
 	"github.com/streed/smol-gang/gateway/internal/models"
 	"github.com/streed/smol-gang/gateway/internal/ws"
 )
@@ -26,14 +27,16 @@ type Coordinator struct {
 	k8s     *k8s.Client
 	config  *config.Config
 	hub     *ws.Hub
+	llm     *llm.Client
 }
 
-func New(queries *db.Queries, k8sClient *k8s.Client, cfg *config.Config, hub *ws.Hub) *Coordinator {
+func New(queries *db.Queries, k8sClient *k8s.Client, cfg *config.Config, hub *ws.Hub, llmClient *llm.Client) *Coordinator {
 	return &Coordinator{
 		queries: queries,
 		k8s:     k8sClient,
 		config:  cfg,
 		hub:     hub,
+		llm:     llmClient,
 	}
 }
 
@@ -133,12 +136,15 @@ func (c *Coordinator) processPlan(ctx context.Context, plan models.Plan) {
 	if anyFailed {
 		_ = c.queries.UpdatePlanStatus(ctx, plan.ID, models.PlanStatusHalted)
 		log.Printf("coordinator: plan %s halted due to task failure", plan.ID)
+		c.cleanupPlanPods(ctx, plan)
 		return
 	}
 
 	if allDone {
 		_ = c.queries.UpdatePlanStatus(ctx, plan.ID, models.PlanStatusComplete)
-		log.Printf("coordinator: plan %s complete", plan.ID)
+		log.Printf("coordinator: plan %s complete — cleaning up and marking PR ready", plan.ID)
+		c.finalizePlan(ctx, plan)
+		c.cleanupPlanPods(ctx, plan)
 	}
 }
 
@@ -201,12 +207,10 @@ func (c *Coordinator) provisionTask(ctx context.Context, plan models.Plan, task 
 		return
 	}
 
-	// Generate branch name for this task
-	branchName := fmt.Sprintf("smol/%s-%s", sanitizeBranchName(task.ID), plan.ID.String()[:8])
-	if task.BranchName != "" {
-		branchName = task.BranchName
-	} else {
-		// Store the generated branch name
+	// Generate a meaningful branch name using LLM
+	branchName := task.BranchName
+	if branchName == "" {
+		branchName = c.generateBranchName(ctx, task.Description, plan.ID.String()[:8])
 		_ = c.queries.UpdateTaskBranch(ctx, task.ID, plan.ID, branchName)
 	}
 
@@ -480,6 +484,182 @@ func (c *Coordinator) getGitHubRef(apiBase, owner, repo, branch, token string) s
 	}
 	json.Unmarshal(body, &result)
 	return result.Object.SHA
+}
+
+// finalizePlan removes the .smol-gang-plan.md file and marks the draft PR as ready for review.
+func (c *Coordinator) finalizePlan(ctx context.Context, plan models.Plan) {
+	if plan.RootBranch == "" {
+		return
+	}
+
+	repo, err := c.queries.GetRepositoryByID(ctx, plan.RepositoryID)
+	if err != nil {
+		return
+	}
+	user, err := c.queries.GetUserByID(ctx, plan.CreatedByID)
+	if err != nil || user.GitHubAccessToken == "" {
+		return
+	}
+
+	token := user.GitHubAccessToken
+	owner := repo.GitHubOwner
+	repoName := repo.GitHubRepo
+	apiBase := "https://api.github.com"
+
+	// Step 1: Delete .smol-gang-plan.md from the root branch
+	// First get the file's SHA (needed for deletion)
+	fileReq, _ := http.NewRequestWithContext(ctx, "GET",
+		fmt.Sprintf("%s/repos/%s/%s/contents/.smol-gang-plan.md?ref=%s", apiBase, owner, repoName, plan.RootBranch), nil)
+	fileReq.Header.Set("Authorization", "Bearer "+token)
+	fileResp, err := http.DefaultClient.Do(fileReq)
+	if err == nil && fileResp.StatusCode == 200 {
+		var fileInfo struct {
+			SHA string `json:"sha"`
+		}
+		body, _ := io.ReadAll(fileResp.Body)
+		fileResp.Body.Close()
+		json.Unmarshal(body, &fileInfo)
+
+		if fileInfo.SHA != "" {
+			deletePayload, _ := json.Marshal(map[string]string{
+				"message": "chore: remove plan file — all tasks merged",
+				"sha":     fileInfo.SHA,
+				"branch":  plan.RootBranch,
+			})
+			delReq, _ := http.NewRequestWithContext(ctx, "DELETE",
+				fmt.Sprintf("%s/repos/%s/%s/contents/.smol-gang-plan.md", apiBase, owner, repoName),
+				bytes.NewReader(deletePayload))
+			delReq.Header.Set("Authorization", "Bearer "+token)
+			delReq.Header.Set("Content-Type", "application/json")
+			delResp, err := http.DefaultClient.Do(delReq)
+			if err == nil {
+				delResp.Body.Close()
+				log.Printf("coordinator: deleted .smol-gang-plan.md from %s (status %d)", plan.RootBranch, delResp.StatusCode)
+			}
+		}
+	} else if fileResp != nil {
+		fileResp.Body.Close()
+	}
+
+	// Step 2: Mark draft PR as ready for review
+	if plan.RootPR > 0 {
+		// GitHub GraphQL API is needed to mark a PR as ready (REST doesn't support it)
+		// Use the REST API to update the PR body with a completion summary instead
+		tasks, _ := c.queries.GetTasksByPlanID(ctx, plan.ID)
+		var prBody strings.Builder
+		prBody.WriteString("## Plan\n\n")
+		prBody.WriteString(plan.Prompt)
+		prBody.WriteString("\n\n---\n\n## Tasks (all completed ✅)\n\n")
+		for _, t := range tasks {
+			prBody.WriteString(fmt.Sprintf("- ✅ **%s**: %s\n", t.ID, t.Description))
+			if t.PRURL != "" {
+				prBody.WriteString(fmt.Sprintf("  - PR: %s\n", t.PRURL))
+			}
+		}
+		prBody.WriteString("\n---\n\n✅ **All tasks merged. Ready for final review.**\n\n*Automated by smol-gang*\n")
+
+		updatePayload, _ := json.Marshal(map[string]interface{}{
+			"body":  prBody.String(),
+			"draft": false,
+		})
+		updateReq, _ := http.NewRequestWithContext(ctx, "PATCH",
+			fmt.Sprintf("%s/repos/%s/%s/pulls/%d", apiBase, owner, repoName, plan.RootPR),
+			bytes.NewReader(updatePayload))
+		updateReq.Header.Set("Authorization", "Bearer "+token)
+		updateReq.Header.Set("Content-Type", "application/json")
+		updateResp, err := http.DefaultClient.Do(updateReq)
+		if err == nil {
+			updateResp.Body.Close()
+			log.Printf("coordinator: marked PR #%d as ready for review (status %d)", plan.RootPR, updateResp.StatusCode)
+		}
+	}
+}
+
+// cleanupPlanPods deletes all agent pods associated with a plan's tasks.
+func (c *Coordinator) cleanupPlanPods(ctx context.Context, plan models.Plan) {
+	if c.k8s == nil {
+		return
+	}
+
+	tasks, err := c.queries.GetTasksByPlanID(ctx, plan.ID)
+	if err != nil {
+		return
+	}
+
+	for _, task := range tasks {
+		if task.WorkstreamID == nil {
+			continue
+		}
+		ws, err := c.queries.GetWorkstreamByID(ctx, *task.WorkstreamID)
+		if err != nil || ws.PodName == "" {
+			continue
+		}
+
+		// Delete the pod and service
+		if err := c.k8s.DeleteAgentPod(ctx, ws.PodName, ws.ServiceName); err != nil {
+			log.Printf("coordinator: failed to delete pod %s: %v", ws.PodName, err)
+		} else {
+			log.Printf("coordinator: deleted pod %s for task %s", ws.PodName, task.ID)
+		}
+
+		// Mark workstream as completed/cancelled based on task status
+		if task.Status == models.TaskStatusFailed || task.Status == models.TaskStatusCancelled {
+			_ = c.queries.UpdateWorkstreamStatus(ctx, *task.WorkstreamID, "cancelled")
+		} else {
+			_ = c.queries.UpdateWorkstreamStatus(ctx, *task.WorkstreamID, "completed")
+		}
+	}
+}
+
+func (c *Coordinator) generateBranchName(ctx context.Context, description, planShortID string) string {
+	fallback := fmt.Sprintf("smol/%s-%s", sanitizeBranchName(description[:min(len(description), 30)]), planShortID)
+
+	if c.llm == nil {
+		return fallback
+	}
+
+	response, err := c.llm.Chat(ctx, []llm.ChatMessage{
+		{Role: "system", Content: "Generate a short git branch name (3-10 words, kebab-case) that describes the change. Reply with ONLY the branch name, no explanation. Use the format: smol/<description>. Example: smol/add-user-auth-middleware"},
+		{Role: "user", Content: description},
+	}, false)
+	if err != nil {
+		log.Printf("coordinator: LLM branch name failed: %v", err)
+		return fallback
+	}
+
+	// Clean up the response
+	name := strings.TrimSpace(response)
+	name = strings.Trim(name, "`\"'")
+	name = strings.TrimSpace(name)
+
+	// Ensure it starts with smol/
+	if !strings.HasPrefix(name, "smol/") {
+		name = "smol/" + name
+	}
+
+	// Sanitize: only allow lowercase alphanumeric, hyphens, slashes
+	var cleaned strings.Builder
+	for _, ch := range strings.ToLower(name) {
+		if (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '/' {
+			cleaned.WriteRune(ch)
+		} else if ch == ' ' || ch == '_' {
+			cleaned.WriteRune('-')
+		}
+	}
+	result := cleaned.String()
+
+	// Enforce length limit
+	if len(result) > 60 {
+		result = result[:60]
+	}
+	if len(result) < 6 {
+		return fallback
+	}
+
+	// Append plan ID to ensure uniqueness
+	result = result + "-" + planShortID
+
+	return result
 }
 
 func base64Encode(s string) string {

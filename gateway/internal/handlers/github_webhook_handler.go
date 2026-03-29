@@ -464,19 +464,25 @@ func (h *GitHubWebhookHandler) completePlanByRootPR(r *http.Request, prNumber in
 
 			repo, _ := h.Queries.GetRepositoryByID(r.Context(), plan.RepositoryID)
 
-			// Delete all task branches
+			// Delete all task branches and clean up pods
 			tasks, _ := h.Queries.GetTasksByPlanID(r.Context(), plan.ID)
 			for _, t := range tasks {
 				if t.BranchName != "" && token != "" && repo.GitHubOwner != "" {
 					h.githubDeleteBranch(repo.GitHubOwner, repo.GitHubRepo, t.BranchName, token)
 				}
-				// Mark all tasks as merged
 				if t.Status != models.TaskStatusMerged {
 					h.Queries.UpdateTaskStatus(r.Context(), t.ID, plan.ID, models.TaskStatusMerged)
 				}
-				// Cancel linked workstreams
 				if t.WorkstreamID != nil {
 					h.Queries.UpdateWorkstreamStatus(r.Context(), *t.WorkstreamID, "completed")
+					// Delete pod
+					if h.K8s != nil {
+						ws, err := h.Queries.GetWorkstreamByID(r.Context(), *t.WorkstreamID)
+						if err == nil && ws.PodName != "" {
+							h.K8s.DeleteAgentPod(r.Context(), ws.PodName, ws.ServiceName)
+							log.Printf("webhook: deleted pod %s for completed task %s", ws.PodName, t.ID)
+						}
+					}
 				}
 			}
 
@@ -531,15 +537,22 @@ func (h *GitHubWebhookHandler) cancelPlanByRootPR(r *http.Request, prNumber int,
 		if (plan.RootPR > 0 && plan.RootPR == prNumber) || (plan.RootBranch != "" && plan.RootBranch == branch) {
 			log.Printf("github webhook: root PR #%d closed for plan %s — cancelling entire plan", prNumber, plan.ID)
 
-			// Cancel all non-terminal tasks
+			// Cancel all non-terminal tasks and clean up pods
 			tasks, _ := h.Queries.GetTasksByPlanID(r.Context(), plan.ID)
 			for _, t := range tasks {
 				if t.Status != models.TaskStatusMerged && t.Status != models.TaskStatusCancelled && t.Status != models.TaskStatusFailed {
 					h.Queries.UpdateTaskStatus(r.Context(), t.ID, plan.ID, models.TaskStatusCancelled)
 
-					// Cancel linked workstream
+					// Cancel linked workstream and delete pod
 					if t.WorkstreamID != nil {
 						h.Queries.UpdateWorkstreamStatus(r.Context(), *t.WorkstreamID, "cancelled")
+						if h.K8s != nil {
+							ws, err := h.Queries.GetWorkstreamByID(r.Context(), *t.WorkstreamID)
+							if err == nil && ws.PodName != "" {
+								h.K8s.DeleteAgentPod(r.Context(), ws.PodName, ws.ServiceName)
+								log.Printf("webhook: deleted pod %s for cancelled task %s", ws.PodName, t.ID)
+							}
+						}
 					}
 				}
 			}

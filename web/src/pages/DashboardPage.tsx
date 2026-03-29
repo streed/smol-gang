@@ -53,7 +53,6 @@ export default function DashboardPage() {
       color: 'text-neon-green',
       bg: 'bg-neon-green/10',
       border: 'border-neon-green/30',
-      glow: 'shadow-neon-green',
     },
     {
       label: 'Total Repositories',
@@ -62,7 +61,6 @@ export default function DashboardPage() {
       color: 'text-neon-cyan',
       bg: 'bg-neon-cyan/10',
       border: 'border-neon-cyan/30',
-      glow: 'shadow-neon-cyan',
     },
     {
       label: 'Completed Today',
@@ -71,7 +69,6 @@ export default function DashboardPage() {
       color: 'text-neon-purple',
       bg: 'bg-neon-purple/10',
       border: 'border-neon-purple/30',
-      glow: 'shadow-neon-purple',
     },
   ];
 
@@ -103,7 +100,7 @@ export default function DashboardPage() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className={`bg-cyber-card border ${stat.border} rounded-lg p-6 flex items-center gap-4 ${stat.glow}`}
+            className={`bg-cyber-card border ${stat.border} rounded-lg p-6 flex items-center gap-4`}
           >
             <div className={`p-3 rounded-lg ${stat.bg}`}>
               <stat.icon className={`h-6 w-6 ${stat.color}`} />

@@ -104,6 +104,10 @@ func SetupRoutes(deps *Deps) http.Handler {
 				deps.Hub.HandleWebSocket(w, r, wsID)
 			})
 
+			// Plans — read for all authenticated users
+			r.Get("/plans", planHandler.List)
+			r.Get("/plans/{planID}", planHandler.Get)
+
 			// Operator+ routes
 			r.Group(func(r chi.Router) {
 				r.Use(middleware.RBACMiddleware("admin", "operator"))
@@ -124,11 +128,9 @@ func SetupRoutes(deps *Deps) http.Handler {
 				r.Post("/workstreams/{id}/complete", workstreamHandler.Complete)
 				r.Post("/workstreams/{id}/cancel", workstreamHandler.Cancel)
 
-				// Plans (DAG orchestrator)
-				r.Get("/plans", planHandler.List)
+				// Plans — write operations (operator+)
 				r.Post("/plans", planHandler.Create)
 				r.Route("/plans/{planID}", func(r chi.Router) {
-					r.Get("/", planHandler.Get)
 					r.Delete("/", planHandler.Delete)
 					r.Post("/tasks", planHandler.AddTask)
 					r.Put("/tasks/{taskID}", planHandler.UpdateTask)

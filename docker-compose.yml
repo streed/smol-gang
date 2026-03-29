@@ -4,7 +4,7 @@ services:
   postgres:
     image: postgres:16-alpine
     environment:
-      POSTGRES_DB: smol_cluster
+      POSTGRES_DB: smol_gang
       POSTGRES_USER: smol
       POSTGRES_PASSWORD: smol_dev_password
     ports:
@@ -12,7 +12,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U smol -d smol_cluster"]
+      test: ["CMD-SHELL", "pg_isready -U smol -d smol_gang"]
       interval: 5s
       timeout: 5s
       retries: 5
@@ -23,7 +23,7 @@ services:
       dockerfile: Dockerfile
     network_mode: host
     environment:
-      DATABASE_URL: "postgres://smol:smol_dev_password@localhost:5432/smol_cluster?sslmode=disable"
+      DATABASE_URL: "postgres://smol:smol_dev_password@localhost:5432/smol_gang?sslmode=disable"
       PORT: "8080"
       JWT_SECRET: "dev-jwt-secret-change-in-production"
       K8S_NAMESPACE: "smol-gang"
@@ -43,7 +43,6 @@ services:
         condition: service_healthy
     volumes:
       - "${HOME}/.kube:/root/.kube:ro"
-      - "${HOME}/.minikube:/home/reed/.minikube:ro"
     restart: unless-stopped
 
   web:

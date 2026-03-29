@@ -232,7 +232,7 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
           <button
             onClick={handleSend}
             disabled={!input.trim()}
-            className="p-2.5 bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/40 rounded-lg hover:bg-neon-cyan/20 hover:shadow-neon-cyan disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="p-2.5 bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 rounded-lg hover:bg-neon-cyan/20 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
             <Send className="h-4 w-4" />
           </button>

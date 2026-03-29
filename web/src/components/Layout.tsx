@@ -39,18 +39,13 @@ export default function Layout_() {
 
         {/* Logo */}
         <div className="relative flex items-center gap-3 px-5 py-5 border-b border-cyber-border">
-          <div className="relative">
-            <Cpu className="h-7 w-7 text-neon-cyan" />
-            <div className="absolute inset-0 animate-pulse-slow">
-              <Cpu className="h-7 w-7 text-neon-cyan opacity-50 blur-sm" />
-            </div>
-          </div>
+          <Cpu className="h-7 w-7 text-neon-cyan" />
           <div>
-            <span className="text-lg font-display font-bold text-neon-cyan text-glow-cyan tracking-wider">
+            <span className="text-lg font-display font-bold text-neon-cyan tracking-wider">
               SMOL
             </span>
             <span className="text-lg font-display font-bold text-gray-400 tracking-wider">
-              -CLUSTER
+              -GANG
             </span>
           </div>
         </div>
@@ -78,7 +73,7 @@ export default function Layout_() {
               className={({ isActive }) =>
                 `flex items-center gap-3 px-3 py-2.5 rounded text-sm font-mono transition-all duration-200 ${
                   isActive
-                    ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30 shadow-neon-cyan'
+                    ? 'bg-neon-cyan/10 text-neon-cyan border border-neon-cyan/30'
                     : 'text-gray-400 hover:text-neon-cyan hover:bg-cyber-hover border border-transparent'
                 }`
               }
@@ -102,7 +97,7 @@ export default function Layout_() {
                   className={({ isActive }) =>
                     `flex items-center gap-3 px-3 py-2.5 rounded text-sm font-mono transition-all duration-200 ${
                       isActive
-                        ? 'bg-neon-magenta/10 text-neon-magenta border border-neon-magenta/30 shadow-neon-magenta'
+                        ? 'bg-neon-magenta/10 text-neon-magenta border border-neon-magenta/30'
                         : 'text-gray-400 hover:text-neon-magenta hover:bg-cyber-hover border border-transparent'
                     }`
                   }
@@ -145,7 +140,7 @@ export default function Layout_() {
         {/* Top Bar */}
         <header className="h-12 bg-cyber-surface/50 backdrop-blur-sm border-b border-cyber-border flex items-center justify-between px-6 flex-shrink-0">
           <div className="flex items-center gap-2">
-            <div className="h-1.5 w-1.5 rounded-full bg-neon-green animate-pulse" />
+            <div className="h-1.5 w-1.5 rounded-full bg-neon-green" />
             <span className="text-[10px] font-mono text-gray-500 uppercase tracking-[0.15em]">
               {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} UTC
             </span>

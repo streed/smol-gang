@@ -22,34 +22,16 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-cyber-bg px-4 relative overflow-hidden">
-      {/* Grid pattern background */}
-      <div
-        className="absolute inset-0 opacity-10"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(0,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
-
-      {/* Scanlines overlay */}
-      <div
-        className="absolute inset-0 pointer-events-none z-10"
-        style={{
-          background:
-            'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)',
-        }}
-      />
+      {/* Subtle grid background */}
+      <div className="absolute inset-0 bg-grid-pattern bg-grid opacity-30 pointer-events-none" />
 
       <div className="w-full max-w-md relative z-20">
         {/* Logo / Branding */}
         <div className="flex flex-col items-center mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Cpu className="h-10 w-10 text-neon-cyan drop-shadow-[0_0_8px_rgba(0,255,255,0.6)]" />
+            <Cpu className="h-10 w-10 text-neon-cyan" />
             <h1 className="text-3xl font-display tracking-widest">
-              <span className="text-neon-cyan drop-shadow-[0_0_10px_rgba(0,255,255,0.5)]">
-                SMOL
-              </span>
+              <span className="text-neon-cyan">SMOL</span>
               <span className="text-gray-200">GANG</span>
             </h1>
           </div>
@@ -59,9 +41,9 @@ export default function LoginPage() {
         </div>
 
         {/* Login card */}
-        <div className="cyber-card bg-cyber-card border border-cyber-border rounded-lg p-8 shadow-[0_0_30px_rgba(0,255,255,0.05)]">
+        <div className="cyber-card p-8">
           <h2 className="text-xl font-display text-gray-200 mb-6 tracking-wide">
-            // AUTHENTICATE
+            Sign In
           </h2>
 
           {error && (
@@ -80,9 +62,8 @@ export default function LoginPage() {
           </button>
         </div>
 
-        {/* Footer accent */}
-        <p className="text-center text-gray-600 text-xs font-mono mt-6 tracking-widest uppercase">
-          Secure Terminal v2.0
+        <p className="text-center text-gray-600 text-xs font-mono mt-6 tracking-wider">
+          smol-gang v0.1.0
         </p>
       </div>
     </div>

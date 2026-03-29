@@ -506,9 +506,11 @@ export default function OrchestratorPage() {
           <button onClick={() => navigate('/workstreams')} className="p-1 text-gray-600 hover:text-gray-400" title="Workstreams">
             <Layers className="h-3.5 w-3.5" />
           </button>
-          <button onClick={() => navigate('/users')} className="p-1 text-gray-600 hover:text-gray-400" title="Admin">
-            <Settings className="h-3.5 w-3.5" />
-          </button>
+          {user?.role === 'admin' && (
+            <button onClick={() => navigate('/users')} className="p-1 text-gray-600 hover:text-gray-400" title="Admin">
+              <Settings className="h-3.5 w-3.5" />
+            </button>
+          )}
         </div>
 
         {/* New plan + repo */}

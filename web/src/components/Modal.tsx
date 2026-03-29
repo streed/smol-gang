@@ -17,7 +17,7 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
         className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative bg-cyber-card border border-neon-cyan/20 rounded-lg shadow-neon-cyan w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+      <div className="relative bg-cyber-card border border-cyber-border rounded-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-cyber-border">
           <h2 className="text-sm font-mono font-semibold text-neon-cyan uppercase tracking-wider">{title}</h2>
           <button

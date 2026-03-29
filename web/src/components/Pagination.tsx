@@ -43,7 +43,7 @@ export default function Pagination({
             onClick={() => onPageChange(p)}
             className={`px-3 py-1.5 text-xs font-mono rounded border transition-all ${
               p === page
-                ? 'bg-neon-cyan/10 text-neon-cyan border-neon-cyan/40 shadow-neon-cyan'
+                ? 'bg-neon-cyan/10 text-neon-cyan border-neon-cyan/30'
                 : 'text-gray-400 bg-cyber-card border-cyber-border hover:border-neon-cyan/30 hover:text-neon-cyan'
             }`}
           >

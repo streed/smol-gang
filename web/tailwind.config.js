@@ -4,40 +4,40 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Cyberpunk color palette
+        // Dark theme palette — softer than full neon
         cyber: {
-          bg: '#0a0a0f',
-          surface: '#12121a',
-          card: '#1a1a2e',
+          bg: '#0c0c14',
+          surface: '#13131e',
+          card: '#1a1a2a',
           border: '#2a2a3e',
-          hover: '#22223a',
+          hover: '#222236',
         },
         neon: {
-          cyan: '#00f0ff',
-          green: '#39ff14',
-          magenta: '#ff00ff',
-          pink: '#ff2d7b',
-          yellow: '#ffd700',
-          orange: '#ff6a00',
-          purple: '#b44dff',
-          red: '#ff0040',
+          cyan: '#5cc8d4',
+          green: '#4ade80',
+          magenta: '#c084fc',
+          pink: '#f472b6',
+          yellow: '#fbbf24',
+          orange: '#fb923c',
+          purple: '#a78bfa',
+          red: '#f87171',
         },
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"Fira Code"', 'monospace'],
-        display: ['"Orbitron"', '"Rajdhani"', 'sans-serif'],
+        display: ['"Inter"', '"Segoe UI"', 'sans-serif'],
         sans: ['"Inter"', '"Segoe UI"', 'sans-serif'],
       },
       boxShadow: {
-        'neon-cyan': '0 0 5px #00f0ff, 0 0 20px rgba(0, 240, 255, 0.15)',
-        'neon-green': '0 0 5px #39ff14, 0 0 20px rgba(57, 255, 20, 0.15)',
-        'neon-magenta': '0 0 5px #ff00ff, 0 0 20px rgba(255, 0, 255, 0.15)',
-        'neon-pink': '0 0 5px #ff2d7b, 0 0 20px rgba(255, 45, 123, 0.15)',
-        'neon-red': '0 0 5px #ff0040, 0 0 20px rgba(255, 0, 64, 0.15)',
-        'glow': '0 0 15px rgba(0, 240, 255, 0.1)',
+        'neon-cyan': '0 0 8px rgba(92, 200, 212, 0.12)',
+        'neon-green': '0 0 8px rgba(74, 222, 128, 0.12)',
+        'neon-magenta': '0 0 8px rgba(192, 132, 252, 0.12)',
+        'neon-pink': '0 0 8px rgba(244, 114, 182, 0.12)',
+        'neon-red': '0 0 8px rgba(248, 113, 113, 0.12)',
+        'glow': '0 0 10px rgba(92, 200, 212, 0.06)',
       },
       backgroundImage: {
-        'grid-pattern': 'linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px)',
+        'grid-pattern': 'linear-gradient(rgba(92, 200, 212, 0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(92, 200, 212, 0.02) 1px, transparent 1px)',
         'gradient-radial': 'radial-gradient(ellipse at center, var(--tw-gradient-stops))',
       },
       backgroundSize: {
@@ -45,18 +45,6 @@ export default {
       },
       animation: {
         'pulse-slow': 'pulse 3s ease-in-out infinite',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'scan': 'scan 4s linear infinite',
-      },
-      keyframes: {
-        glow: {
-          '0%': { boxShadow: '0 0 5px rgba(0, 240, 255, 0.2)' },
-          '100%': { boxShadow: '0 0 20px rgba(0, 240, 255, 0.4)' },
-        },
-        scan: {
-          '0%': { backgroundPosition: '0% 0%' },
-          '100%': { backgroundPosition: '0% 100%' },
-        },
       },
     },
   },

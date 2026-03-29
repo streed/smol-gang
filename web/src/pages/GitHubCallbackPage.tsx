@@ -31,7 +31,7 @@ export default function GitHubCallbackPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-cyber-bg px-4">
       <div className="text-center">
-        <Cpu className="h-10 w-10 text-neon-cyan mx-auto mb-4 animate-pulse" />
+        <Cpu className="h-10 w-10 text-neon-cyan mx-auto mb-4" />
         {error ? (
           <div>
             <p className="text-neon-red font-mono mb-4">{error}</p>

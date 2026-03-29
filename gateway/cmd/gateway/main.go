@@ -86,7 +86,7 @@ func main() {
 	}()
 
 	// Start coordinator for DAG plan execution
-	coord := coordinator.New(queries, k8sClient, cfg, hub)
+	coord := coordinator.New(queries, k8sClient, cfg, hub, llmClient)
 	go coord.Run(ctx)
 
 	// Start server

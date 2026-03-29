@@ -125,7 +125,7 @@ export default function WorkstreamsPage() {
               setFilterRepo(e.target.value);
               setPage(1);
             }}
-            className="input-cyber bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan"
+            className="input-cyber bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:border-neon-cyan/40"
           >
             <option value="">All Repositories</option>
             {repositories.map((r) => (
@@ -142,7 +142,7 @@ export default function WorkstreamsPage() {
               setFilterStatus(e.target.value);
               setPage(1);
             }}
-            className="input-cyber bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan"
+            className="input-cyber bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:border-neon-cyan/40"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>

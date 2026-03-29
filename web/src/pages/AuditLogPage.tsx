@@ -65,7 +65,7 @@ export default function AuditLogPage() {
             setFilterUser(e.target.value);
             setPage(1);
           }}
-          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:border-neon-cyan/40 transition-all"
         >
           <option value="">All Users</option>
           {usersList.map((u) => (
@@ -82,7 +82,7 @@ export default function AuditLogPage() {
             setPage(1);
           }}
           placeholder="Filter by action..."
-          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:border-neon-cyan/40 transition-all"
         />
         <input
           type="date"
@@ -91,7 +91,7 @@ export default function AuditLogPage() {
             setFilterDateFrom(e.target.value);
             setPage(1);
           }}
-          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all [color-scheme:dark]"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:border-neon-cyan/40 transition-all [color-scheme:dark]"
         />
         <span className="text-gray-500 font-mono">to</span>
         <input
@@ -101,7 +101,7 @@ export default function AuditLogPage() {
             setFilterDateTo(e.target.value);
             setPage(1);
           }}
-          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:shadow-neon-cyan transition-all [color-scheme:dark]"
+          className="bg-cyber-bg/80 border border-cyber-border rounded px-3 py-2 text-sm text-gray-200 font-mono focus:outline-none focus:border-neon-cyan/50 focus:border-neon-cyan/40 transition-all [color-scheme:dark]"
         />
       </div>
 
