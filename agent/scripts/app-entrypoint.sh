@@ -104,5 +104,5 @@ while true; do
         kill $(jobs -p) 2>/dev/null || true
         exec "$0"
     fi
-    sleep 5
+    sleep 2
 done

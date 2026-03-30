@@ -116,7 +116,6 @@ type PortMapping struct {
 
 type ResourceLimits struct {
 	CPURequest    string `json:"cpu_request"`
-	CPULimit      string `json:"cpu_limit"`
 	MemoryRequest string `json:"memory_request"`
 	MemoryLimit   string `json:"memory_limit"`
 	DiskSize      string `json:"disk_size"`

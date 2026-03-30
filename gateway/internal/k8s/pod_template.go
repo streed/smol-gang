@@ -22,7 +22,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 
 	// Default resource limits (kept low to allow multiple concurrent agents)
 	cpuRequest := "250m"
-	cpuLimit := "2000m"
 	memRequest := "512Mi"
 	memLimit := "2Gi"
 	diskSize := "10Gi"
@@ -31,9 +30,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 		rl := repo.Config.ResourceLimits
 		if rl.CPURequest != "" {
 			cpuRequest = rl.CPURequest
-		}
-		if rl.CPULimit != "" {
-			cpuLimit = rl.CPULimit
 		}
 		if rl.MemoryRequest != "" {
 			memRequest = rl.MemoryRequest
@@ -214,7 +210,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 							corev1.ResourceMemory: resource.MustParse("256Mi"),
 						},
 						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("1000m"),
 							corev1.ResourceMemory: resource.MustParse("1Gi"),
 						},
 					},
@@ -245,7 +240,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 							corev1.ResourceMemory: resource.MustParse(memRequest),
 						},
 						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse(cpuLimit),
 							corev1.ResourceMemory: resource.MustParse(memLimit),
 						},
 					},
@@ -269,7 +263,6 @@ func BuildPodSpec(podName string, ws models.Workstream, repo models.Repository, 
 							corev1.ResourceMemory: resource.MustParse("128Mi"),
 						},
 						Limits: corev1.ResourceList{
-							corev1.ResourceCPU:    resource.MustParse("500m"),
 							corev1.ResourceMemory: resource.MustParse("512Mi"),
 						},
 					},

@@ -270,6 +270,9 @@ async function processQueue() {
         execSync(`git push -u origin ${config.branch} 2>&1 || true`, { cwd: config.workspace, timeout: 30000 });
         console.log('[bridge] Auto-committed and pushed changes');
 
+        // Signal app container to restart so it picks up the new code
+        try { execSync('touch /workspace/.restart-app'); } catch { /* ignore */ }
+
         // Auto-create PR if one doesn't exist yet
         if (!prCreated) {
           const prUrl = await gitPushAndPR();

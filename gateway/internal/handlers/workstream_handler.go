@@ -372,18 +372,23 @@ func (h *WorkstreamHandler) GetPorts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if workstream.ServiceName == "" {
-		writeJSON(w, http.StatusOK, map[string]interface{}{"ports": []interface{}{}})
-		return
+	// Return proxy URLs that the frontend can open directly
+	var portMappings []map[string]interface{}
+	for _, pm := range workstream.PortMappings {
+		portMappings = append(portMappings, map[string]interface{}{
+			"name":        pm.Name,
+			"port":        pm.ContainerPort,
+			"url":         fmt.Sprintf("/api/v1/workstreams/%s/app/%d/", workstream.ID.String(), pm.ContainerPort),
+			"protocol":    pm.Protocol,
+			"description": pm.Description,
+		})
 	}
 
-	endpoints, err := h.K8s.GetServiceEndpoints(r.Context(), workstream.ServiceName)
-	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to get service endpoints"})
-		return
+	if portMappings == nil {
+		portMappings = []map[string]interface{}{}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{"ports": endpoints})
+	writeJSON(w, http.StatusOK, map[string]interface{}{"port_mappings": portMappings})
 }
 
 // AgentMessage handles callbacks from agent pods

@@ -128,6 +128,11 @@ func (c *Client) GetPodLogs(ctx context.Context, podName string, container strin
 	return buf.String(), nil
 }
 
+// GetServiceHost returns the in-cluster DNS address for a service port.
+func (c *Client) GetServiceHost(serviceName string, port int) string {
+	return fmt.Sprintf("%s.%s.svc.cluster.local:%d", serviceName, c.namespace, port)
+}
+
 func (c *Client) GetServiceEndpoints(ctx context.Context, serviceName string) (map[string]string, error) {
 	svc, err := c.clientset.CoreV1().Services(c.namespace).Get(ctx, serviceName, metav1.GetOptions{})
 	if err != nil {

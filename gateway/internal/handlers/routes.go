@@ -116,6 +116,9 @@ func SetupRoutes(deps *Deps) http.Handler {
 				r.Get("/ws/workstreams/{id}/terminal", workstreamHandler.Terminal)
 				r.Get("/ws/workstreams/{id}/terminal/{container}", workstreamHandler.Terminal)
 
+				// App proxy - reverse proxy to running app services (operator+ only)
+				r.HandleFunc("/workstreams/{id}/app/{port}/*", workstreamHandler.AppProxy)
+
 				r.Get("/github/repos", repoHandler.ListGitHubRepos)
 				r.Post("/github/repos/import", repoHandler.ImportGitHubRepo)
 

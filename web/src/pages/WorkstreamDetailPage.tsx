@@ -22,7 +22,7 @@ export default function WorkstreamDetailPage() {
     Array<{ name: string; url: string; port: number }>
   >([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'agent-logs' | 'changes'>('chat');
+  const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'agent-logs' | 'changes' | 'preview'>('chat');
   const [agentLogs, setAgentLogs] = useState('');
   const [diffData, setDiffData] = useState<{ stat: string; diff: string }>({ stat: '', diff: '' });
   const agentLogsRef = useRef<HTMLPreElement>(null);
@@ -219,6 +219,18 @@ export default function WorkstreamDetailPage() {
             >
               Changes
             </button>
+            {ports.length > 0 && (
+              <button
+                onClick={() => setActiveTab('preview')}
+                className={`px-4 py-2 text-sm font-medium border-b-2 ${
+                  activeTab === 'preview'
+                    ? 'border-neon-cyan text-neon-cyan'
+                    : 'border-transparent text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                App Preview
+              </button>
+            )}
           </div>
           <div className="flex-1 min-h-0">
             {activeTab === 'chat' && <ChatInterface workstreamId={id} />}
@@ -231,6 +243,15 @@ export default function WorkstreamDetailPage() {
                 >
                   {agentLogs || 'Loading agent logs...'}
                 </pre>
+              </div>
+            )}
+            {activeTab === 'preview' && ports.length > 0 && (
+              <div className="h-full bg-cyber-card border border-cyber-border rounded-b-lg overflow-hidden">
+                <iframe
+                  src={ports[0].url}
+                  className="w-full h-full border-0"
+                  title="App Preview"
+                />
               </div>
             )}
             {activeTab === 'changes' && (
