@@ -122,21 +122,22 @@ type ResourceLimits struct {
 }
 
 type Workstream struct {
-	ID             uuid.UUID     `json:"id" db:"id"`
-	Name           string        `json:"name" db:"name"`
-	Description    string        `json:"description" db:"description"`
-	RepositoryID   uuid.UUID     `json:"repository_id" db:"repository_id"`
-	BranchName     string        `json:"branch_name" db:"branch_name"`
-	Status         string        `json:"status" db:"status"`
-	PodName        string        `json:"pod_name" db:"pod_name"`
-	ServiceName    string        `json:"service_name" db:"service_name"`
-	PortMappings   []PortMapping `json:"port_mappings" db:"-"`
-	PullRequestURL string        `json:"pull_request_url,omitempty" db:"pull_request_url"`
-	LLMConfig      *LLMConfig    `json:"llm_config,omitempty" db:"llm_config"`
-	CreatedByID    uuid.UUID     `json:"created_by_id" db:"created_by_id"`
-	CreatedAt      time.Time     `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time     `json:"updated_at" db:"updated_at"`
-	CompletedAt    *time.Time    `json:"completed_at,omitempty" db:"completed_at"`
+	ID                  uuid.UUID     `json:"id" db:"id"`
+	Name                string        `json:"name" db:"name"`
+	Description         string        `json:"description" db:"description"`
+	RepositoryID        uuid.UUID     `json:"repository_id" db:"repository_id"`
+	BranchName          string        `json:"branch_name" db:"branch_name"`
+	Status              string        `json:"status" db:"status"`
+	PodName             string        `json:"pod_name" db:"pod_name"`
+	ServiceName         string        `json:"service_name" db:"service_name"`
+	PortMappings        []PortMapping `json:"port_mappings" db:"-"`
+	PullRequestURL      string        `json:"pull_request_url,omitempty" db:"pull_request_url"`
+	LLMConfig           *LLMConfig    `json:"llm_config,omitempty" db:"llm_config"`
+	ParentWorkstreamID  *uuid.UUID    `json:"parent_workstream_id,omitempty" db:"parent_workstream_id"`
+	CreatedByID         uuid.UUID     `json:"created_by_id" db:"created_by_id"`
+	CreatedAt           time.Time     `json:"created_at" db:"created_at"`
+	UpdatedAt           time.Time     `json:"updated_at" db:"updated_at"`
+	CompletedAt         *time.Time    `json:"completed_at,omitempty" db:"completed_at"`
 }
 
 type LLMConfig struct {
@@ -224,6 +225,22 @@ type CreateWorkstreamRequest struct {
 
 type SendMessageRequest struct {
 	Content string `json:"content"`
+}
+
+// SpawnBackgroundAgentRequest is sent by an agent pod to spawn a child workstream.
+type SpawnBackgroundAgentRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Prompt      string `json:"prompt"`
+	BranchName  string `json:"branch_name,omitempty"`
+}
+
+// BackgroundAgentStatus is returned when the parent agent polls its inbox.
+type BackgroundAgentStatus struct {
+	WorkstreamID string `json:"workstream_id"`
+	Name         string `json:"name"`
+	Status       string `json:"status"`
+	LatestMessage string `json:"latest_message,omitempty"`
 }
 
 // --- Response Types ---

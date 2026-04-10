@@ -6,12 +6,14 @@ import {
   CheckCircle,
   XCircle,
   Globe,
+  Cpu,
 } from 'lucide-react';
 import { workstreams as wsApi, repos as reposApi } from '../api/endpoints';
 import StatusBadge from '../components/StatusBadge';
 import ChatInterface from '../components/ChatInterface';
 import Terminal from '../components/Terminal';
 import type { Workstream, Repository } from '../types';
+import useWebSocket from '../hooks/useWebSocket';
 import toast from 'react-hot-toast';
 
 export default function WorkstreamDetailPage() {
@@ -25,6 +27,7 @@ export default function WorkstreamDetailPage() {
   const [activeTab, setActiveTab] = useState<'chat' | 'terminal' | 'agent-logs' | 'changes' | 'preview'>('chat');
   const [agentLogs, setAgentLogs] = useState('');
   const [diffData, setDiffData] = useState<{ stat: string; diff: string }>({ stat: '', diff: '' });
+  const [children, setChildren] = useState<Workstream[]>([]);
   const agentLogsRef = useRef<HTMLPreElement>(null);
 
   const fetchData = async () => {
@@ -52,6 +55,37 @@ export default function WorkstreamDetailPage() {
   useEffect(() => {
     fetchData();
   }, [id]);
+
+  // Subscribe to WebSocket for real-time background agent updates
+  const { messages: wsMessages } = useWebSocket(id || '');
+
+  // Poll children when the workstream is running
+  useEffect(() => {
+    if (!id || !workstream || !['running', 'provisioning'].includes(workstream.status)) return;
+    let cancelled = false;
+
+    const fetchChildren = async () => {
+      try {
+        const res = await wsApi.getChildren(id);
+        if (!cancelled) setChildren(res.data.children || []);
+      } catch { /* ignore */ }
+    };
+
+    fetchChildren();
+    const interval = setInterval(fetchChildren, 10000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [id, workstream?.status]);
+
+  // Also refresh children when we get background_agent WebSocket events
+  useEffect(() => {
+    if (!id) return;
+    const bgEvents = wsMessages.filter(m => m.type?.startsWith('background_agent'));
+    if (bgEvents.length > 0) {
+      wsApi.getChildren(id)
+        .then(res => setChildren(res.data.children || []))
+        .catch(() => {});
+    }
+  }, [wsMessages.length, id]);
 
   // Poll agent logs when the Agent Logs tab is active
   useEffect(() => {
@@ -306,6 +340,30 @@ export default function WorkstreamDetailPage() {
                   <XCircle className="h-4 w-4" />
                   Cancel
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Background Agents */}
+          {children.length > 0 && (
+            <div className="bg-cyber-card border border-cyber-border rounded-lg p-6">
+              <h3 className="text-sm font-mono font-semibold text-purple-400 uppercase tracking-wider mb-4">
+                Background Agents
+              </h3>
+              <div className="space-y-2">
+                {children.map((child) => (
+                    <Link
+                      key={child.id}
+                      to={`/workstreams/${child.id}`}
+                      className="flex items-center gap-2 px-3 py-2 bg-cyber-surface rounded-lg text-sm hover:bg-purple-500/10 transition-colors"
+                    >
+                      <Cpu className="h-4 w-4 text-purple-400 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <span className="text-gray-200 font-medium truncate block">{child.name}</span>
+                      </div>
+                      <StatusBadge status={child.status} />
+                    </Link>
+                ))}
               </div>
             </div>
           )}

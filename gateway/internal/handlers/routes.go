@@ -74,6 +74,8 @@ func SetupRoutes(deps *Deps) http.Handler {
 		r.Group(func(r chi.Router) {
 			r.Post("/internal/workstreams/{id}/agent-message", workstreamHandler.AgentMessage)
 			r.Post("/internal/workstreams/{id}/status", workstreamHandler.AgentStatusUpdate)
+			r.Post("/internal/workstreams/{id}/spawn-agent", workstreamHandler.SpawnBackgroundAgent)
+			r.Get("/internal/workstreams/{id}/inbox", workstreamHandler.AgentInbox)
 		})
 
 		// Authenticated routes
@@ -97,6 +99,7 @@ func SetupRoutes(deps *Deps) http.Handler {
 			r.Get("/workstreams/{id}/logs", workstreamHandler.GetLogs)
 			r.Get("/workstreams/{id}/ports", workstreamHandler.GetPorts)
 			r.Get("/workstreams/{id}/diff", workstreamHandler.GetDiff)
+			r.Get("/workstreams/{id}/children", workstreamHandler.ListChildren)
 
 			// WebSocket
 			r.Get("/ws/workstreams/{id}", func(w http.ResponseWriter, r *http.Request) {

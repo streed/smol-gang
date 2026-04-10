@@ -74,6 +74,7 @@ export interface Workstream {
   port_mappings: PortMapping[];
   pull_request_url: string;
   llm_config: LLMConfig;
+  parent_workstream_id?: string;
   created_at: string;
   completed_at: string;
 }
@@ -85,6 +86,7 @@ export interface Message {
   source: string;
   content: string;
   created_at: string;
+  type?: string; // WebSocket message type: "chat", "background_agent", "background_agent_status", etc.
 }
 
 export interface AuditLog {

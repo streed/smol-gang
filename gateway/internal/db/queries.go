@@ -236,12 +236,12 @@ func (q *Queries) CreateWorkstream(ctx context.Context, ws models.Workstream) (m
 	var w models.Workstream
 	var portBytes, llmBytes []byte
 	err := q.Pool.QueryRow(ctx,
-		`INSERT INTO workstreams (name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, llm_config, created_by_id)
-		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-		 RETURNING id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, created_by_id, created_at, updated_at, completed_at`,
-		ws.Name, ws.Description, ws.RepositoryID, ws.BranchName, ws.Status, ws.PodName, ws.ServiceName, portJSON, llmJSON, ws.CreatedByID,
+		`INSERT INTO workstreams (name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, llm_config, parent_workstream_id, created_by_id)
+		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		 RETURNING id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, parent_workstream_id, created_by_id, created_at, updated_at, completed_at`,
+		ws.Name, ws.Description, ws.RepositoryID, ws.BranchName, ws.Status, ws.PodName, ws.ServiceName, portJSON, llmJSON, ws.ParentWorkstreamID, ws.CreatedByID,
 	).Scan(&w.ID, &w.Name, &w.Description, &w.RepositoryID, &w.BranchName, &w.Status, &w.PodName, &w.ServiceName,
-		&portBytes, &w.PullRequestURL, &llmBytes, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt)
+		&portBytes, &w.PullRequestURL, &llmBytes, &w.ParentWorkstreamID, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt)
 	if err != nil {
 		return w, err
 	}
@@ -254,10 +254,10 @@ func (q *Queries) GetWorkstreamByID(ctx context.Context, id uuid.UUID) (models.W
 	var w models.Workstream
 	var portBytes, llmBytes []byte
 	err := q.Pool.QueryRow(ctx,
-		`SELECT id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, created_by_id, created_at, updated_at, completed_at
+		`SELECT id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, parent_workstream_id, created_by_id, created_at, updated_at, completed_at
 		 FROM workstreams WHERE id = $1`, id,
 	).Scan(&w.ID, &w.Name, &w.Description, &w.RepositoryID, &w.BranchName, &w.Status, &w.PodName, &w.ServiceName,
-		&portBytes, &w.PullRequestURL, &llmBytes, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt)
+		&portBytes, &w.PullRequestURL, &llmBytes, &w.ParentWorkstreamID, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt)
 	if err != nil {
 		return w, err
 	}
@@ -288,7 +288,7 @@ func (q *Queries) ListWorkstreams(ctx context.Context, repoID *uuid.UUID, status
 		return nil, 0, err
 	}
 
-	selectQuery := `SELECT id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, created_by_id, created_at, updated_at, completed_at
+	selectQuery := `SELECT id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, parent_workstream_id, created_by_id, created_at, updated_at, completed_at
 		FROM workstreams WHERE 1=1`
 	selectArgs := []interface{}{}
 	selectIdx := 1
@@ -319,7 +319,7 @@ func (q *Queries) ListWorkstreams(ctx context.Context, repoID *uuid.UUID, status
 		var w models.Workstream
 		var portBytes, llmBytes []byte
 		if err := rows.Scan(&w.ID, &w.Name, &w.Description, &w.RepositoryID, &w.BranchName, &w.Status, &w.PodName, &w.ServiceName,
-			&portBytes, &w.PullRequestURL, &llmBytes, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt); err != nil {
+			&portBytes, &w.PullRequestURL, &llmBytes, &w.ParentWorkstreamID, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt); err != nil {
 			return nil, 0, err
 		}
 		json.Unmarshal(portBytes, &w.PortMappings)
@@ -346,6 +346,44 @@ func (q *Queries) UpdateWorkstreamPR(ctx context.Context, id uuid.UUID, prURL st
 func (q *Queries) UpdateWorkstreamPod(ctx context.Context, id uuid.UUID, podName, serviceName string) error {
 	_, err := q.Pool.Exec(ctx, `UPDATE workstreams SET pod_name = $2, service_name = $3 WHERE id = $1`, id, podName, serviceName)
 	return err
+}
+
+// ListChildWorkstreams returns all workstreams whose parent is the given workstream ID.
+func (q *Queries) ListChildWorkstreams(ctx context.Context, parentID uuid.UUID) ([]models.Workstream, error) {
+	rows, err := q.Pool.Query(ctx,
+		`SELECT id, name, description, repository_id, branch_name, status, pod_name, service_name, port_mappings, pull_request_url, llm_config, parent_workstream_id, created_by_id, created_at, updated_at, completed_at
+		 FROM workstreams WHERE parent_workstream_id = $1
+		 ORDER BY created_at ASC`, parentID,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var workstreams []models.Workstream
+	for rows.Next() {
+		var w models.Workstream
+		var portBytes, llmBytes []byte
+		if err := rows.Scan(&w.ID, &w.Name, &w.Description, &w.RepositoryID, &w.BranchName, &w.Status, &w.PodName, &w.ServiceName,
+			&portBytes, &w.PullRequestURL, &llmBytes, &w.ParentWorkstreamID, &w.CreatedByID, &w.CreatedAt, &w.UpdatedAt, &w.CompletedAt); err != nil {
+			return nil, err
+		}
+		json.Unmarshal(portBytes, &w.PortMappings)
+		json.Unmarshal(llmBytes, &w.LLMConfig)
+		workstreams = append(workstreams, w)
+	}
+	return workstreams, nil
+}
+
+// GetLatestMessageByWorkstreamID returns the most recent message from a given workstream.
+func (q *Queries) GetLatestMessageByWorkstreamID(ctx context.Context, workstreamID uuid.UUID) (models.Message, error) {
+	var m models.Message
+	err := q.Pool.QueryRow(ctx,
+		`SELECT id, workstream_id, user_id, source, content, created_at
+		 FROM messages WHERE workstream_id = $1 AND source = 'agent'
+		 ORDER BY created_at DESC LIMIT 1`, workstreamID,
+	).Scan(&m.ID, &m.WorkstreamID, &m.UserID, &m.Source, &m.Content, &m.CreatedAt)
+	return m, err
 }
 
 // --- Messages ---

@@ -93,6 +93,9 @@ export const workstreams = {
   getDiff: (id: string) =>
     client.get<{ stat: string; diff: string }>(`/workstreams/${id}/diff`),
 
+  getChildren: (id: string) =>
+    client.get<{ children: Workstream[] }>(`/workstreams/${id}/children`),
+
   deleteWorkstream: (id: string) => client.delete(`/workstreams/${id}`),
 };
 

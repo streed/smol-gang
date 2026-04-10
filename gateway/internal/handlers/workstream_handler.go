@@ -421,6 +421,17 @@ func (h *WorkstreamHandler) AgentMessage(w http.ResponseWriter, r *http.Request)
 		Source:  "agent",
 	})
 
+	// If this workstream has a parent, forward the message to the parent's WebSocket room
+	// so the user watching the parent sees background agent activity in real time.
+	workstream, wsErr := h.Queries.GetWorkstreamByID(r.Context(), id)
+	if wsErr == nil && workstream.ParentWorkstreamID != nil {
+		h.Hub.BroadcastToWorkstream(workstream.ParentWorkstreamID.String(), ws.Message{
+			Type:    "background_agent",
+			Content: req.Content,
+			Source:  workstream.Name,
+		})
+	}
+
 	writeJSON(w, http.StatusOK, msg)
 }
 
@@ -453,7 +464,203 @@ func (h *WorkstreamHandler) AgentStatusUpdate(w http.ResponseWriter, r *http.Req
 		Content: req.Status,
 	})
 
+	// Forward child status changes to the parent's WebSocket room
+	workstream, wsErr := h.Queries.GetWorkstreamByID(r.Context(), id)
+	if wsErr == nil && workstream.ParentWorkstreamID != nil {
+		h.Hub.BroadcastToWorkstream(workstream.ParentWorkstreamID.String(), ws.Message{
+			Type:    "background_agent_status",
+			Content: fmt.Sprintf("%s: %s", workstream.Name, req.Status),
+			Source:  workstream.Name,
+		})
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
+// SpawnBackgroundAgent allows an agent pod to spawn a child workstream that runs concurrently.
+// The child workstream is linked to the parent via parent_workstream_id.
+func (h *WorkstreamHandler) SpawnBackgroundAgent(w http.ResponseWriter, r *http.Request) {
+	parentID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid workstream ID"})
+		return
+	}
+
+	var req models.SpawnBackgroundAgentRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid request body"})
+		return
+	}
+
+	if req.Name == "" || req.Prompt == "" {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "name and prompt are required"})
+		return
+	}
+
+	parent, err := h.Queries.GetWorkstreamByID(r.Context(), parentID)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, models.ErrorResponse{Error: "parent workstream not found"})
+		return
+	}
+
+	repo, err := h.Queries.GetRepositoryByID(r.Context(), parent.RepositoryID)
+	if err != nil {
+		writeJSON(w, http.StatusNotFound, models.ErrorResponse{Error: "repository not found"})
+		return
+	}
+
+	branchName := req.BranchName
+	if branchName == "" {
+		shortID := uuid.New().String()[:8]
+		branchName = fmt.Sprintf("smol/bg-%s-%s", sanitizeBranchName(req.Name), shortID)
+	}
+
+	description := req.Prompt
+	if req.Description != "" {
+		description = req.Description
+	}
+
+	child, err := h.Queries.CreateWorkstream(r.Context(), models.Workstream{
+		Name:               req.Name,
+		Description:        description,
+		RepositoryID:       parent.RepositoryID,
+		BranchName:         branchName,
+		Status:             "pending",
+		ParentWorkstreamID: &parentID,
+		CreatedByID:        parent.CreatedByID,
+	})
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to create child workstream", Details: err.Error()})
+		return
+	}
+
+	// Notify the parent's WebSocket room about the new background agent
+	h.Hub.BroadcastToWorkstream(parentID.String(), ws.Message{
+		Type:    "background_agent_spawned",
+		Content: fmt.Sprintf("Spawned background agent: %s (%s)", req.Name, child.ID.String()[:8]),
+		Source:  req.Name,
+	})
+
+	// Get user's token for the child agent
+	user, _ := h.Queries.GetUserByID(r.Context(), parent.CreatedByID)
+	gitToken := ""
+	if user.GitHubAccessToken != "" {
+		gitToken = user.GitHubAccessToken
+	}
+	gatewayToken, _ := auth.GenerateToken(parent.CreatedByID, user.Email, user.Role, h.Config.JWTSecret, 7*24*time.Hour)
+
+	// Provision K8s pod asynchronously
+	go func() {
+		bgCtx := context.Background()
+		_ = h.Queries.UpdateWorkstreamStatus(bgCtx, child.ID, "provisioning")
+
+		if h.K8s == nil {
+			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, child.ID, "failed")
+			h.Hub.BroadcastToWorkstream(parentID.String(), ws.Message{
+				Type:    "background_agent_status",
+				Content: fmt.Sprintf("%s: provisioning failed (k8s unavailable)", req.Name),
+				Source:  req.Name,
+			})
+			return
+		}
+
+		extraEnv := map[string]string{
+			"GIT_TOKEN":              gitToken,
+			"GATEWAY_TOKEN":          gatewayToken,
+			"PARENT_WORKSTREAM_ID":   parentID.String(),
+		}
+
+		podName, serviceName, provErr := h.K8s.CreateAgentPod(bgCtx, child, repo, extraEnv)
+		if provErr != nil {
+			_ = h.Queries.UpdateWorkstreamStatus(bgCtx, child.ID, "failed")
+			h.Hub.BroadcastToWorkstream(parentID.String(), ws.Message{
+				Type:    "background_agent_status",
+				Content: fmt.Sprintf("%s: provisioning failed: %v", req.Name, provErr),
+				Source:  req.Name,
+			})
+			return
+		}
+
+		_ = h.Queries.UpdateWorkstreamPod(bgCtx, child.ID, podName, serviceName)
+		_ = h.Queries.UpdateWorkstreamStatus(bgCtx, child.ID, "running")
+
+		h.Hub.BroadcastToWorkstream(parentID.String(), ws.Message{
+			Type:    "background_agent_status",
+			Content: fmt.Sprintf("%s: running", req.Name),
+			Source:  req.Name,
+		})
+	}()
+
+	writeJSON(w, http.StatusCreated, child)
+}
+
+// AgentInbox returns the status of all child (background) workstreams for a given parent.
+// The parent agent polls this endpoint to watch for status updates from its children.
+func (h *WorkstreamHandler) AgentInbox(w http.ResponseWriter, r *http.Request) {
+	parentID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid workstream ID"})
+		return
+	}
+
+	children, err := h.Queries.ListChildWorkstreams(r.Context(), parentID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to list children"})
+		return
+	}
+
+	var statuses []models.BackgroundAgentStatus
+	for _, child := range children {
+		status := models.BackgroundAgentStatus{
+			WorkstreamID: child.ID.String(),
+			Name:         child.Name,
+			Status:       child.Status,
+		}
+
+		// Get latest message from the child agent
+		latestMsg, msgErr := h.Queries.GetLatestMessageByWorkstreamID(r.Context(), child.ID)
+		if msgErr == nil {
+			// Truncate long messages for the inbox summary
+			content := latestMsg.Content
+			if len(content) > 500 {
+				content = content[:500] + "..."
+			}
+			status.LatestMessage = content
+		}
+
+		statuses = append(statuses, status)
+	}
+
+	if statuses == nil {
+		statuses = []models.BackgroundAgentStatus{}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"children": statuses,
+	})
+}
+
+// ListChildren returns child (background) workstreams for the authenticated UI.
+func (h *WorkstreamHandler) ListChildren(w http.ResponseWriter, r *http.Request) {
+	parentID, err := uuid.Parse(chi.URLParam(r, "id"))
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, models.ErrorResponse{Error: "invalid workstream ID"})
+		return
+	}
+
+	children, err := h.Queries.ListChildWorkstreams(r.Context(), parentID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: "failed to list children"})
+		return
+	}
+
+	if children == nil {
+		children = []models.Workstream{}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"children": children,
+	})
 }
 
 // Terminal provides an interactive web terminal into a workstream's container.

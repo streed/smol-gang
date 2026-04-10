@@ -45,6 +45,7 @@ func RunMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 		migrationAddGitHubToUsers,
 		migrationCreateDAGTables,
 		migrationAddPlanConversations,
+		migrationAddBackgroundAgents,
 	}
 
 	for i, migration := range migrations {
@@ -233,4 +234,10 @@ CREATE INDEX IF NOT EXISTS idx_events_type ON events(event_type);
 
 const migrationAddPlanConversations = `
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS conversations JSONB DEFAULT '[]';
+`
+
+const migrationAddBackgroundAgents = `
+-- Parent-child workstream relationship for background agent spawning
+ALTER TABLE workstreams ADD COLUMN IF NOT EXISTS parent_workstream_id UUID REFERENCES workstreams(id);
+CREATE INDEX IF NOT EXISTS idx_workstreams_parent ON workstreams(parent_workstream_id) WHERE parent_workstream_id IS NOT NULL;
 `

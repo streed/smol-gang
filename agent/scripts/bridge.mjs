@@ -460,6 +460,133 @@ async function postPRComment(diffStat, prompt) {
   }
 }
 
+// ── Background Agent Spawning & Inbox ─────────────────────────────
+
+// Track spawned background agents
+const backgroundAgents = new Map(); // workstreamId -> { name, status }
+let inboxPollInterval = null;
+
+async function spawnBackgroundAgent(name, prompt, description, branchName) {
+  const url = `${config.gatewayUrl}/api/v1/internal/workstreams/${config.workstreamId}/spawn-agent`;
+  const body = JSON.stringify({
+    name,
+    prompt,
+    description: description || prompt,
+    branch_name: branchName || '',
+  });
+
+  try {
+    const resp = await new Promise((resolve, reject) => {
+      const req = http.request(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try {
+            resolve({ status: res.statusCode, data: JSON.parse(data) });
+          } catch {
+            resolve({ status: res.statusCode, data: {} });
+          }
+        });
+      });
+      req.on('error', reject);
+      req.write(body);
+      req.end();
+    });
+
+    if (resp.status === 201 && resp.data.id) {
+      backgroundAgents.set(resp.data.id, { name, status: 'pending' });
+      console.log(`[bridge] Spawned background agent "${name}" -> ${resp.data.id}`);
+      reportToGateway(`🚀 Spawned background agent: **${name}** (${resp.data.id.slice(0, 8)})`);
+
+      // Start inbox polling if not already running
+      if (!inboxPollInterval) {
+        startInboxPoller();
+      }
+
+      return resp.data;
+    } else {
+      const errMsg = resp.data.error || `spawn failed (status ${resp.status})`;
+      console.error(`[bridge] Spawn failed: ${errMsg}`);
+      reportToGateway(`❌ Failed to spawn background agent "${name}": ${errMsg}`);
+      return null;
+    }
+  } catch (e) {
+    console.error(`[bridge] Spawn error: ${e.message}`);
+    reportToGateway(`❌ Failed to spawn background agent "${name}": ${e.message}`);
+    return null;
+  }
+}
+
+async function pollInbox() {
+  if (backgroundAgents.size === 0) return;
+
+  const url = `${config.gatewayUrl}/api/v1/internal/workstreams/${config.workstreamId}/inbox`;
+  try {
+    const resp = await new Promise((resolve, reject) => {
+      const req = http.request(url, { method: 'GET' }, (res) => {
+        let data = '';
+        res.on('data', chunk => { data += chunk; });
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)); } catch { resolve({}); }
+        });
+      });
+      req.on('error', reject);
+      req.end();
+    });
+
+    const children = resp.children || [];
+    let anyActive = false;
+
+    for (const child of children) {
+      const prev = backgroundAgents.get(child.workstream_id);
+      if (!prev) continue;
+
+      // Report status changes
+      if (prev.status !== child.status) {
+        prev.status = child.status;
+        const emoji = child.status === 'completed' ? '✅' : child.status === 'failed' ? '❌' : '🔄';
+        reportToGateway(`${emoji} Background agent **${child.name}**: ${child.status}`);
+
+        // If the agent is done, feed the final message back as a prompt to the parent
+        if ((child.status === 'completed' || child.status === 'failed') && child.latest_message) {
+          const summary = `[Background agent "${child.name}" finished with status: ${child.status}]\n\n${child.latest_message}`;
+          // Don't block on this — just queue it
+          sendPrompt(summary).catch(e =>
+            console.error(`[bridge] Failed to feed inbox to agent: ${e.message}`)
+          );
+        }
+      }
+
+      if (!['completed', 'failed', 'cancelled'].includes(child.status)) {
+        anyActive = true;
+      }
+    }
+
+    // Stop polling when all children are done
+    if (!anyActive && inboxPollInterval) {
+      clearInterval(inboxPollInterval);
+      inboxPollInterval = null;
+      console.log('[bridge] All background agents finished, stopped inbox polling');
+    }
+  } catch (e) {
+    console.error(`[bridge] Inbox poll error: ${e.message}`);
+  }
+}
+
+function startInboxPoller() {
+  if (inboxPollInterval) return;
+  console.log('[bridge] Starting inbox poller (every 10s)');
+  inboxPollInterval = setInterval(pollInbox, 10000);
+  // Also poll immediately
+  pollInbox();
+}
+
 // ── HTTP Server ───────────────────────────────────────────────────
 
 function parseBody(req) {
@@ -530,6 +657,27 @@ const server = http.createServer(async (req, res) => {
       } catch { /* ignore */ }
     }
     respond(res, 200, { stat: stat.trim(), diff: diff.trim() });
+  } else if (req.method === 'POST' && req.url === '/spawn') {
+    // Spawn a background agent — called by the parent agent
+    const data = await parseBody(req);
+    const name = data.name || '';
+    const prompt = data.prompt || '';
+    if (!name || !prompt) {
+      return respond(res, 400, { error: 'name and prompt are required' });
+    }
+    const result = await spawnBackgroundAgent(name, prompt, data.description, data.branch_name);
+    if (result) {
+      respond(res, 201, result);
+    } else {
+      respond(res, 500, { error: 'failed to spawn background agent' });
+    }
+  } else if (req.method === 'GET' && req.url === '/inbox') {
+    // Return current background agent statuses
+    const agents = [];
+    for (const [id, info] of backgroundAgents) {
+      agents.push({ workstream_id: id, name: info.name, status: info.status });
+    }
+    respond(res, 200, { agents });
   } else if (req.method === 'POST' && req.url === '/complete') {
     agentStatus = 'completing';
     const prUrl = await gitPushAndPR();

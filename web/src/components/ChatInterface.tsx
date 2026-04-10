@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Send, User, Bot, Wrench, Wifi, WifiOff } from 'lucide-react';
+import { Send, User, Bot, Wrench, Wifi, WifiOff, Cpu } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import useWebSocket from '../hooks/useWebSocket';
@@ -23,6 +23,15 @@ function isVisible(msg: Message): boolean {
 // Detect tool messages
 function isToolMessage(content: string): boolean {
   return content.startsWith('\u{1F527} Tool:');
+}
+
+// Detect background agent messages (via WebSocket type or message content pattern)
+function isBackgroundAgentMessage(msg: Message): boolean {
+  if (msg.type === 'background_agent' || msg.type === 'background_agent_status' || msg.type === 'background_agent_spawned') return true;
+  // Also detect by content pattern from reportToGateway
+  if (msg.source === 'agent' && msg.content.startsWith('🚀 Spawned background agent:')) return true;
+  if (msg.source === 'agent' && /^[✅❌🔄] Background agent /.test(msg.content)) return true;
+  return false;
 }
 
 export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
@@ -157,6 +166,7 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
         {allMessages.map((msg, idx) => {
           const isUser = msg.source === 'user';
           const isTool = !isUser && isToolMessage(msg.content);
+          const isBgAgent = isBackgroundAgentMessage(msg);
           const time = formatTime(msg.created_at);
 
           // Tool calls rendered inline/compact
@@ -166,6 +176,33 @@ export default function ChatInterface({ workstreamId }: ChatInterfaceProps) {
                 <Wrench className="h-3 w-3 text-neon-yellow flex-shrink-0" />
                 <span className="text-gray-500 font-mono">{msg.content.replace(/^🔧\s*/, '')}</span>
                 {time && <span className="text-gray-700 ml-auto">{time}</span>}
+              </div>
+            );
+          }
+
+          // Background agent messages rendered with distinct styling
+          if (isBgAgent) {
+            const agentName = msg.source && msg.source !== 'agent' ? msg.source : 'Background Agent';
+            return (
+              <div key={msg.id || idx} className="flex justify-start">
+                <div className="max-w-[85%]">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="flex items-center gap-1 text-xs text-purple-400 font-mono">
+                      <Cpu className="h-3.5 w-3.5" />
+                      {agentName}
+                    </span>
+                  </div>
+                  <div className="px-4 py-2.5 text-sm bg-purple-500/10 text-purple-200 border border-purple-500/30 rounded-lg rounded-bl-sm">
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-1 prose-pre:my-2 prose-pre:bg-cyber-bg prose-pre:border prose-pre:border-cyber-border prose-code:text-neon-green prose-code:before:content-none prose-code:after:content-none prose-headings:text-gray-200 prose-a:text-neon-cyan prose-strong:text-gray-200 prose-li:my-0.5">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.content}
+                      </ReactMarkdown>
+                    </div>
+                  </div>
+                  {time && (
+                    <p className="text-xs text-gray-600 mt-1 text-left">{time}</p>
+                  )}
+                </div>
               </div>
             );
           }
